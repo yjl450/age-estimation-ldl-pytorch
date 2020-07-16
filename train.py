@@ -20,6 +20,7 @@ from model import get_model
 from dataset import FaceDataset
 from defaults import _C as cfg
 from datetime import datetime
+from matplotlib import pyplot as plt 
 
 def get_args():
     model_names = sorted(name for name in pretrainedmodels.__dict__
@@ -201,7 +202,13 @@ def main():
         train_writer = SummaryWriter(log_dir=args.tensorboard + "/" + opts_prefix + "_train")
         val_writer = SummaryWriter(log_dir=args.tensorboard + "/" + opts_prefix + "_val")
 
-    for epoch in range(start_epoch, cfg.TRAIN.EPOCHS):
+    all_train_loss = []
+    all_train_accu = []
+    all_val_loss = []
+    all_val_accu=[]
+    
+
+    for epoch in range(cfg.TRAIN.EPOCHES): #range(start_epoch, cfg.TRAIN.EPOCHS):
         # train
         train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, device)
 
@@ -214,6 +221,11 @@ def main():
             val_writer.add_scalar("loss", val_loss, epoch)
             val_writer.add_scalar("acc", val_acc, epoch)
             val_writer.add_scalar("mae", val_mae, epoch)
+
+        all_train_loss.append(float(train_loss))
+        all_train_accu.append(float(train_acc))
+        all_val_loss.append(float(val_loss))
+        all_val_accu.append(float(val_acc))
 
         # checkpoint
         if val_mae < best_val_mae:
@@ -238,6 +250,25 @@ def main():
     print("=> training finished")
     print(f"additional opts: {args.opts}")
     print(f"best val mae: {best_val_mae:.3f}")
+
+    x = cfg.TRAIN.EPOCHES
+    plt.xlabel("Epoch")
+
+    plt.ylabel("Train Loss")
+    plt.plot(x, all_train_loss)
+    plt.savefig("savefig/train_loss.png")
+
+    plt.ylabel("Train Accuracy")
+    plt.plot(x, all_train_accu)
+    plt.savefig("savefig/train_accu.png")
+
+    plt.ylabel("Validation Loss")
+    plt.plot(x, all_val_loss)
+    plt.savefig("savefig/val_loss.png")
+
+    plt.ylabel("Validation Accuracy")
+    plt.plot(x, all_val_accu)
+    plt.savefig("savefig/val_accu.png")
 
 
 if __name__ == '__main__':
