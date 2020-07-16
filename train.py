@@ -208,7 +208,7 @@ def main():
     all_val_accu=[]
     
 
-    for epoch in range(cfg.TRAIN.EPOCHES): #range(start_epoch, cfg.TRAIN.EPOCHS):
+    for epoch in range(cfg.TRAIN.EPOCHS): #range(start_epoch, cfg.TRAIN.EPOCHS):
         # train
         train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, device)
 
@@ -251,7 +251,7 @@ def main():
     print(f"additional opts: {args.opts}")
     print(f"best val mae: {best_val_mae:.3f}")
 
-    x = cfg.TRAIN.EPOCHES
+    x = cfg.TRAIN.EPOCHS
     plt.xlabel("Epoch")
 
     plt.ylabel("Train Loss")
