@@ -19,7 +19,7 @@ import pretrainedmodels.utils
 from model import get_model
 from dataset import FaceDataset
 from defaults import _C as cfg
-
+from datetime import datetime
 
 def get_args():
     model_names = sorted(name for name in pretrainedmodels.__dict__
@@ -226,7 +226,7 @@ def main():
                     'state_dict': model_state_dict,
                     'optimizer_state_dict': optimizer.state_dict()
                 },
-                str(checkpoint_dir.joinpath("epoch{:03d}_{:.5f}_{:.4f}.pth".format(epoch, val_loss, val_mae)))
+                str(checkpoint_dir.joinpath("checkpoint\epoch{:03d}_{:.5f}_{:.4f}_{}_seresnext50.pth".format(epoch, val_loss, val_mae, datetime.now().strftime("%Y%m%d"))))
             )
             best_val_mae = val_mae
         else:
