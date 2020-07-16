@@ -43,16 +43,16 @@ class FaceDataset(Dataset):
         self.augment = augment
         self.age_stddev = age_stddev
         self.transform = transforms.Compose([
-            transforms.Resize(img_size),
+            transforms.Resize((img_size, img_size)),
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[
                                  0.247, 0.243, 0.261]),
         ])
 
-        if augment:
-            self.transform = ImgAugTransform()
-        else:
-            self.transform = lambda i: i
+        # if augment:
+        #     self.transform = ImgAugTransform()
+        # else:
+        #     self.transform = lambda i: i
 
         self.x = []
         self.y = []
@@ -87,7 +87,9 @@ class FaceDataset(Dataset):
             self.rotate[idx], resample=Image.BICUBIC, expand=True)  # Alignment
         img = img.crop(self.boxes[idx])
         # img.show()
-        return self.transform(img), age #np.clip(round(age), 0, 100)
+        img = self.transform(img)
+        # print(img.shape)
+        return img, age #np.clip(round(age), 0, 100)
 
 
 def main():
