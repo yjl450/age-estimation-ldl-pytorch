@@ -238,7 +238,7 @@ def main():
                     'state_dict': model_state_dict,
                     'optimizer_state_dict': optimizer.state_dict()
                 },
-                str(checkpoint_dir.joinpath("checkpoint/epoch{:03d}_{:.5f}_{:.4f}_{}_seresnext50.pth".format(epoch, val_loss, val_mae, datetime.now().strftime("%Y%m%d"))))
+                str(checkpoint_dir.joinpath("epoch{:03d}_{:.5f}_{:.4f}_{}_seresnext50.pth".format(epoch, val_loss, val_mae, datetime.now().strftime("%Y%m%d"))))
             )
             best_val_mae = val_mae
         else:
@@ -251,20 +251,23 @@ def main():
     print(f"additional opts: {args.opts}")
     print(f"best val mae: {best_val_mae:.3f}")
 
-    x = cfg.TRAIN.EPOCHS
+    x = np.arange(cfg.TRAIN.EPOCHS)
     plt.xlabel("Epoch")
 
     plt.ylabel("Train Loss")
     plt.plot(x, all_train_loss)
     plt.savefig("savefig/train_loss.png")
+    plt.clf()
 
     plt.ylabel("Train Accuracy")
     plt.plot(x, all_train_accu)
     plt.savefig("savefig/train_accu.png")
+    plt.clf()
 
     plt.ylabel("Validation Loss")
     plt.plot(x, all_val_loss)
     plt.savefig("savefig/val_loss.png")
+    plt.clf()
 
     plt.ylabel("Validation Accuracy")
     plt.plot(x, all_val_accu)
