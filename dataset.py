@@ -35,9 +35,9 @@ class ImgAugTransform:
 
 
 class FaceDataset(Dataset):
-    def __init__(self, data_dir, data_type, img_size=224, augment=False, age_stddev=1.0):
-        assert(data_type in ("train", "valid"))
-        csv_path = Path(data_dir).joinpath(f"Morph_{data_type}_align.csv")
+    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0):
+        assert(data_type in ("train", "valid", "test"))
+        csv_path = Path(data_dir).joinpath(f"{dataset}_{data_type}_align.csv")
         img_dir = Path(data_dir)
         self.img_size = img_size
         self.augment = augment
@@ -96,10 +96,12 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--data_dir", type=str, required=True)
+    parser.add_argument("--dataset", type=str, required=True)
     args = parser.parse_args()
-    dataset = FaceDataset(args.data_dir, "train")
+    print(args)
+    dataset = FaceDataset(args.data_dir, "train", args.dataset)
     print("train dataset len: {}".format(len(dataset)))
-    dataset = FaceDataset(args.data_dir, "valid")
+    dataset = FaceDataset(args.data_dir, "valid", args.dataset)
     print("valid dataset len: {}".format(len(dataset)))
 
 if __name__ == '__main__':

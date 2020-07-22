@@ -23,6 +23,7 @@ def get_args():
     parser = argparse.ArgumentParser(description=f"available models: {model_names}",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--data_dir", type=str, required=True, help="Data root directory")
+    parser.add_argument("--dataset", type=str, required=True, help="Dataset Name")
     parser.add_argument("--resume", type=str, required=True, help="Model weight to be tested")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
@@ -58,7 +59,7 @@ def main():
     if device == "cuda":
         cudnn.benchmark = True
 
-    test_dataset = FaceDataset(args.data_dir, "test", img_size=cfg.MODEL.IMG_SIZE, augment=False)
+    test_dataset = FaceDataset(args.data_dir, "test", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=False)
     test_loader = DataLoader(test_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                              num_workers=cfg.TRAIN.WORKERS, drop_last=False)
 
