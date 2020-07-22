@@ -257,22 +257,22 @@ def main():
 
     plt.ylabel("Train Loss")
     plt.plot(x, all_train_loss)
-    plt.savefig("savefig/train_loss.png")
+    plt.savefig("savefig/{}_train_loss.png".format(args.dataset))
     plt.clf()
 
     plt.ylabel("Train Accuracy")
     plt.plot(x, all_train_accu)
-    plt.savefig("savefig/train_accu.png")
+    plt.savefig("savefig/{}_train_accu.png".format(args.dataset))
     plt.clf()
 
     plt.ylabel("Validation Loss")
     plt.plot(x, all_val_loss)
-    plt.savefig("savefig/val_loss.png")
+    plt.savefig("savefig/{}_val_loss.png".format(args.dataset))
     plt.clf()
 
     plt.ylabel("Validation Accuracy")
     plt.plot(x, all_val_accu)
-    plt.savefig("savefig/val_accu.png")
+    plt.savefig("savefig/{}_val_accu.png".format(args.dataset))
 
 
 if __name__ == '__main__':
