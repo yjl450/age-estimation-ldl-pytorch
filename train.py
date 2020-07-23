@@ -226,7 +226,7 @@ def main():
         all_train_loss.append(float(train_loss))
         all_train_accu.append(float(train_acc))
         all_val_loss.append(float(val_loss))
-        all_val_accu.append(float(val_acc))
+        all_val_accu.append(float(val_mae))
 
         # checkpoint
         if val_mae < best_val_mae:
@@ -239,7 +239,7 @@ def main():
                     'state_dict': model_state_dict,
                     'optimizer_state_dict': optimizer.state_dict()
                 },
-                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
+                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}——hello.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
             )
             best_val_mae = val_mae
         else:
@@ -258,22 +258,22 @@ def main():
 
     plt.ylabel("Train Loss")
     plt.plot(x, all_train_loss)
-    plt.savefig("savefig/{}_train_loss.png".format(args.dataset))
+    plt.savefig("savefig/{}_{}_{}_train_loss.png".format(args.dataset, cfg.MODEL.ARCH,datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Train Accuracy")
     plt.plot(x, all_train_accu)
-    plt.savefig("savefig/{}_train_accu.png".format(args.dataset))
+    plt.savefig("savefig/{}_{}_{}_train_accu.png".format(args.dataset, cfg.MODEL.ARCH,datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Validation Loss")
     plt.plot(x, all_val_loss)
-    plt.savefig("savefig/{}_val_loss.png".format(args.dataset))
+    plt.savefig("savefig/{}_{}_{}_val_loss.png".format(args.dataset, cfg.MODEL.ARCH,datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Validation Accuracy")
     plt.plot(x, all_val_accu)
-    plt.savefig("savefig/{}_val_accu.png".format(args.dataset))
+    plt.savefig("savefig/{}_{}_{}_val_mae.png".format(args.dataset, cfg.MODEL.ARCH,datetime.now().strftime("%Y%m%d")))
 
 
 if __name__ == '__main__':
