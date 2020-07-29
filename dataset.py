@@ -82,6 +82,8 @@ class FaceDataset(Dataset):
         # if self.augment:
         #     age += np.random.randn() * self.std[idx] * self.age_stddev
         img = Image.open(img_path)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
         # img.show()
         img = img.rotate(
             self.rotate[idx], resample=Image.BICUBIC, expand=True)  # Alignment
