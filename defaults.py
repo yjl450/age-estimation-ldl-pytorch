@@ -4,7 +4,7 @@ _C = CN()
 
 # Model
 _C.MODEL = CN()
-_C.MODEL.ARCH = "vgg16_bn"  # check python train.py -h for available models
+_C.MODEL.ARCH = "resnet50"  # check python train.py -h for available models
 _C.MODEL.IMG_SIZE = 224
 
 # Train
