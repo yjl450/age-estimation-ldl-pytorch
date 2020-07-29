@@ -20,7 +20,9 @@ from model import get_model
 from dataset import FaceDataset
 from defaults import _C as cfg
 from datetime import datetime
-from matplotlib import pyplot as plt 
+from matplotlib import pyplot as plt
+import loss
+
 
 def get_args():
     model_names = sorted(name for name in pretrainedmodels.__dict__
@@ -29,12 +31,18 @@ def get_args():
                          and callable(pretrainedmodels.__dict__[name]))
     parser = argparse.ArgumentParser(description=f"available models: {model_names}",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--data_dir", type=str, required=True, help="Data root directory")
-    parser.add_argument("--dataset", type=str, required=True, help="Dataset name")
-    parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint if any")
-    parser.add_argument("--checkpoint", type=str, default="checkpoint", help="Checkpoint directory")
-    parser.add_argument("--tensorboard", type=str, default=None, help="Tensorboard log directory")
-    parser.add_argument('--multi_gpu', action="store_true", help="Use multi GPUs (data parallel)")
+    parser.add_argument("--data_dir", type=str,
+                        required=True, help="Data root directory")
+    parser.add_argument("--dataset", type=str,
+                        required=True, help="Dataset name")
+    parser.add_argument("--resume", type=str, default=None,
+                        help="Resume from checkpoint if any")
+    parser.add_argument("--checkpoint", type=str,
+                        default="checkpoint", help="Checkpoint directory")
+    parser.add_argument("--tensorboard", type=str,
+                        default=None, help="Tensorboard log directory")
+    parser.add_argument('--multi_gpu', action="store_true",
+                        help="Use multi GPUs (data parallel)")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
     args = parser.parse_args()
@@ -59,22 +67,27 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
     model.train()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
+    rank = torch.Tensor([i for i in range(101)]).to(device)
 
     with tqdm(train_loader) as _tqdm:
-        for x, y in _tqdm:
+        for x, y, lbl in _tqdm:
             x = x.to(device)
             y = y.to(device)
+            lbl = lbl.to(device)
 
             # compute output
             outputs = model(x)
+            ages = torch.sum(outputs*rank, dim=1)
 
             # calc loss
-            loss = criterion(outputs, y)
+            # loss = criterion(outputs, y)
+            loss1 = loss.kl_loss(outputs, lbl)
+            loss2 = loss.L1_loss(ages, y)
+            loss = loss1 + loss2
             cur_loss = loss.item()
 
             # calc accuracy
-            _, predicted = outputs.max(1)
-            correct_num = predicted.eq(y).sum().item()
+            correct_num = (abs(ages - y) < 1).sum().item()
 
             # measure accuracy and record loss
             sample_num = x.size(0)
@@ -98,27 +111,33 @@ def validate(validate_loader, model, criterion, epoch, device):
     accuracy_monitor = AverageMeter()
     preds = []
     gt = []
+    rank = torch.Tensor([i for i in range(101)]).to(device)
 
     with torch.no_grad():
         with tqdm(validate_loader) as _tqdm:
-            for i, (x, y) in enumerate(_tqdm):
+            for i, (x, y, lbl) in enumerate(_tqdm):
                 x = x.to(device)
                 y = y.to(device)
+                lbl = lbl.to(device)
 
                 # compute output
                 outputs = model(x)
-                preds.append(F.softmax(outputs, dim=-1).cpu().numpy())
-                gt.append(y.cpu().numpy())
+                ages = torch.sum(outputs*rank, dim=1)  # age expectation
+                preds.append(ages.cpu().numpy())  # append predicted age
+                gt.append(y.cpu().numpy())  # append real age
 
                 # valid for validation, not used for test
                 if criterion is not None:
                     # calc loss
-                    loss = criterion(outputs, y)
+                    loss1 = loss.kl_loss(outputs, lbl)
+                    loss2 = loss.L1_loss(ages, y)
+                    loss = loss1 + loss2
                     cur_loss = loss.item()
 
                     # calc accuracy
-                    _, predicted = outputs.max(1)
-                    correct_num = predicted.eq(y).sum().item()
+                    # _, predicted = outputs.max(1)
+                    # correct_num = predicted.eq(y).sum().item()
+                    correct_num = (abs(ages - y) < 1).sum().item()
 
                     # measure accuracy and record loss
                     sample_num = x.size(0)
@@ -129,10 +148,9 @@ def validate(validate_loader, model, criterion, epoch, device):
 
     preds = np.concatenate(preds, axis=0)
     gt = np.concatenate(gt, axis=0)
-    ages = np.arange(0, 101)
-    ave_preds = (preds * ages).sum(axis=-1)
-    diff = ave_preds - gt
-    mae = np.abs(diff).mean()
+    # ages = np.arange(0, 101)
+    # ave_preds = (preds * ages).sum(axis=-1)
+    mae = np.abs(preds - gt).mean()
 
     return loss_monitor.avg, accuracy_monitor.avg, mae
 
@@ -185,11 +203,12 @@ def main():
 
     criterion = nn.CrossEntropyLoss().to(device)
     train_dataset = FaceDataset(args.data_dir, "train", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=True,
-                                age_stddev=cfg.TRAIN.AGE_STDDEV)
+                                age_stddev=cfg.TRAIN.AGE_STDDEV, label=True)
     train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                              num_workers=cfg.TRAIN.WORKERS, drop_last=True)
+                              num_workers=cfg.TRAIN.WORKERS, drop_last=False)
 
-    val_dataset = FaceDataset(args.data_dir, "valid", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=False)
+    val_dataset = FaceDataset(args.data_dir, "valid", args.dataset,
+                              img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
 
@@ -200,21 +219,25 @@ def main():
 
     if args.tensorboard is not None:
         opts_prefix = "_".join(args.opts)
-        train_writer = SummaryWriter(log_dir=args.tensorboard + "/" + opts_prefix + "_train")
-        val_writer = SummaryWriter(log_dir=args.tensorboard + "/" + opts_prefix + "_val")
+        train_writer = SummaryWriter(
+            log_dir=args.tensorboard + "/" + opts_prefix + "_train")
+        val_writer = SummaryWriter(
+            log_dir=args.tensorboard + "/" + opts_prefix + "_val")
 
     all_train_loss = []
     all_train_accu = []
     all_val_loss = []
-    all_val_accu=[]
-    
+    all_val_accu = []
 
-    for epoch in range(cfg.TRAIN.EPOCHS): #range(start_epoch, cfg.TRAIN.EPOCHS):
+    # range(start_epoch, cfg.TRAIN.EPOCHS):
+    for epoch in range(cfg.TRAIN.EPOCHS):
         # train
-        train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, device)
+        train_loss, train_acc = train(
+            train_loader, model, criterion, optimizer, epoch, device)
 
         # validate
-        val_loss, val_acc, val_mae = validate(val_loader, model, criterion, epoch, device)
+        val_loss, val_acc, val_mae = validate(
+            val_loader, model, criterion, epoch, device)
 
         if args.tensorboard is not None:
             train_writer.add_scalar("loss", train_loss, epoch)
@@ -230,8 +253,10 @@ def main():
 
         # checkpoint
         if val_mae < best_val_mae:
-            print(f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
-            model_state_dict = model.module.state_dict() if args.multi_gpu else model.state_dict()
+            print(
+                f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
+            model_state_dict = model.module.state_dict(
+            ) if args.multi_gpu else model.state_dict()
             torch.save(
                 {
                     'epoch': epoch + 1,
@@ -239,11 +264,13 @@ def main():
                     'state_dict': model_state_dict,
                     'optimizer_state_dict': optimizer.state_dict()
                 },
-                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_pretraining.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
+                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_lbl.pth".format(
+                    epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
             )
             best_val_mae = val_mae
         else:
-            print(f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
+            print(
+                f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
 
         # adjust learning rate
         scheduler.step()
@@ -257,22 +284,26 @@ def main():
 
     plt.ylabel("Train Loss")
     plt.plot(x, all_train_loss)
-    plt.savefig("savefig/{}_{}_{}_train_loss.png".format(args.dataset, cfg.MODEL.ARCH,datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_train_loss.png".format(args.dataset,
+                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Train Accuracy")
     plt.plot(x, all_train_accu)
-    plt.savefig("savefig/{}_{}_{}_train_accu.png".format(args.dataset, cfg.MODEL.ARCH,datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_train_accu.png".format(args.dataset,
+                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Validation Loss")
     plt.plot(x, all_val_loss)
-    plt.savefig("savefig/{}_{}_{}_val_loss.png".format(args.dataset, cfg.MODEL.ARCH,datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_val_loss.png".format(args.dataset,
+                                                       cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Validation Accuracy")
     plt.plot(x, all_val_accu)
-    plt.savefig("savefig/{}_{}_{}_val_mae.png".format(args.dataset, cfg.MODEL.ARCH,datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_val_mae.png".format(args.dataset,
+                                                      cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
 
 
 if __name__ == '__main__':

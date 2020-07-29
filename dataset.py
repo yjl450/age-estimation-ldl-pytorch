@@ -8,38 +8,20 @@ from PIL import Image
 from torch.utils.data import Dataset
 from imgaug import augmenters as iaa
 import torchvision.transforms as transforms
+import math
 
 
-class ImgAugTransform:
-    def __init__(self):
-        self.aug = iaa.Sequential([
-            iaa.OneOf([
-                iaa.Sometimes(
-                    0.25, iaa.AdditiveGaussianNoise(scale=0.1 * 255)),
-                iaa.Sometimes(0.25, iaa.GaussianBlur(sigma=(0, 3.0)))
-            ]),
-            iaa.Affine(
-                rotate=(-20, 20), mode="edge",
-                scale={"x": (0.95, 1.05), "y": (0.95, 1.05)},
-                translate_percent={"x": (-0.05, 0.05), "y": (-0.05, 0.05)}
-            ),
-            iaa.AddToHueAndSaturation(value=(-10, 10), per_channel=True),
-            iaa.GammaContrast((0.3, 2)),
-            iaa.Fliplr(0.5),
-        ])
-
-    def __call__(self, img):
-        img = np.array(img)
-        img = self.aug.augment_image(img)
-        return img
+def normal_sampling(mean, label_k, std=2):
+    return math.exp(-(label_k-mean)**2/(2*std**2))/(math.sqrt(2*math.pi)*std)
 
 
 class FaceDataset(Dataset):
-    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0):
+    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0, label = False):
         assert(data_type in ("train", "valid", "test"))
         csv_path = Path(data_dir).joinpath(f"{dataset}_{data_type}_align.csv")
         img_dir = Path(data_dir)
         self.img_size = img_size
+        self.label = label
         self.augment = augment
         self.age_stddev = age_stddev
         self.transform = transforms.Compose([
@@ -49,10 +31,6 @@ class FaceDataset(Dataset):
                                  0.229, 0.224, 0.225])
         ])
 
-        # if augment:
-        #     self.transform = ImgAugTransform()
-        # else:
-        #     self.transform = lambda i: i
 
         self.x = []
         self.y = []
@@ -79,8 +57,6 @@ class FaceDataset(Dataset):
         img_path = self.x[idx]
         age = self.y[idx]
 
-        # if self.augment:
-        #     age += np.random.randn() * self.std[idx] * self.age_stddev
         img = Image.open(img_path)
         if img.mode != "RGB":
             img = img.convert("RGB")
@@ -91,7 +67,13 @@ class FaceDataset(Dataset):
         # img.show()
         img = self.transform(img)
         # print(img.shape)
-        return img, int(age) #np.clip(round(age), 0, 100)
+        if self.label:
+            label = [normal_sampling(int(age), i) for i in range(101)]
+            label = [i if i > 1e-15 else 1e-15 for i in label]
+            label = torch.Tensor(label)
+            return img, int(age), label
+        else:
+            return img, int(age)
 
 
 def main():
