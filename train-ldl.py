@@ -21,7 +21,7 @@ from dataset import FaceDataset
 from defaults import _C as cfg
 from datetime import datetime
 from matplotlib import pyplot as plt
-import loss
+import loss as L
 
 
 def get_args():
@@ -81,8 +81,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
 
             # calc loss
             # loss = criterion(outputs, y)
-            loss1 = loss.kl_loss(outputs, lbl)
-            loss2 = loss.L1_loss(ages, y)
+            loss1 = L.kl_loss(outputs, lbl)
+            loss2 = L.L1_loss(ages, y)
             loss = loss1 + loss2
             cur_loss = loss.item()
 
@@ -129,8 +129,8 @@ def validate(validate_loader, model, criterion, epoch, device):
                 # valid for validation, not used for test
                 if criterion is not None:
                     # calc loss
-                    loss1 = loss.kl_loss(outputs, lbl)
-                    loss2 = loss.L1_loss(ages, y)
+                    loss1 = L.kl_loss(outputs, lbl)
+                    loss2 = L.L1_loss(ages, y)
                     loss = loss1 + loss2
                     cur_loss = loss.item()
 
