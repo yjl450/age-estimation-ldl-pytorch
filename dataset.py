@@ -91,7 +91,7 @@ class FaceDataset(Dataset):
         # img.show()
         img = self.transform(img)
         # print(img.shape)
-        return img, age #np.clip(round(age), 0, 100)
+        return img, int(age) #np.clip(round(age), 0, 100)
 
 
 def main():
