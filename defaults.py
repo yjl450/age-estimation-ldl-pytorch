@@ -4,7 +4,7 @@ _C = CN()
 
 # Model
 _C.MODEL = CN()
-_C.MODEL.ARCH = "seresnext50"  # check python train.py -h for available models
+_C.MODEL.ARCH = "se_resnext50_32x4d"  # check python train.py -h for available models
 _C.MODEL.IMG_SIZE = 224
 
 # Train
