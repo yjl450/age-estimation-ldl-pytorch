@@ -264,7 +264,7 @@ def main():
                     'state_dict': model_state_dict,
                     'optimizer_state_dict': optimizer.state_dict()
                 },
-                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_lbl.pth".format(
+                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(
                     epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
             )
             best_val_mae = val_mae
