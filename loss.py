@@ -6,7 +6,7 @@ def kl_loss(inputs, labels):
     criterion = nn.KLDivLoss(reduction="batchmean")
     # outputs = F.log_softmax(inputs, dim=1)
     # print(outputs)
-    outputs = torch.log(outputs)
+    outputs = torch.log(inputs)
     loss = criterion(outputs, labels)
     # loss = loss.sum()/loss.shape[0] # batch average loss
     return loss
