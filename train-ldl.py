@@ -77,6 +77,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
 
             # compute output
             outputs = model(x)
+            outputs = F.softmax(outputs, dim = 1)
             ages = torch.sum(outputs*rank, dim=1)
 
             # calc loss
@@ -122,6 +123,7 @@ def validate(validate_loader, model, criterion, epoch, device):
 
                 # compute output
                 outputs = model(x)
+                outputs = F.softmax(outputs, dim = 1)
                 ages = torch.sum(outputs*rank, dim=1)  # age expectation
                 preds.append(ages.cpu().numpy())  # append predicted age
                 gt.append(y.cpu().numpy())  # append real age
