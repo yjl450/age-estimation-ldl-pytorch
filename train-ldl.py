@@ -279,7 +279,7 @@ def main():
 
         # validate
         val_loss, val_acc, val_mae, new_rate= validate(
-            val_loader, model, criterion, epoch, device)
+            val_loader, model, criterion, epoch, device, group_count)
 
         if args.tensorboard is not None:
             train_writer.add_scalar("loss", train_loss, epoch)
