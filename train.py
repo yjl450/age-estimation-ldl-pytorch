@@ -242,6 +242,7 @@ def main():
                 str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_pretraining_imdb.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
             )
             best_val_mae = val_mae
+            best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_pretraining_imdb.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
         else:
             print(f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
 
@@ -251,6 +252,7 @@ def main():
     print("=> training finished")
     print(f"additional opts: {args.opts}")
     print(f"best val mae: {best_val_mae:.3f}")
+    print("best mae saved model:", best_checkpoint)
 
     x = np.arange(cfg.TRAIN.EPOCHS)
     plt.xlabel("Epoch")
