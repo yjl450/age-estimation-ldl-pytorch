@@ -4,7 +4,7 @@ _C = CN()
 
 # Model
 _C.MODEL = CN()
-_C.MODEL.ARCH = "se_resnext50_32x4d"  # check python train.py -h for available models
+_C.MODEL.ARCH = "vgg16_bn"  # check python train.py -h for available models
 _C.MODEL.IMG_SIZE = 224
 
 # Train
@@ -17,7 +17,7 @@ _C.TRAIN.LR_DECAY_RATE = 0.2
 _C.TRAIN.MOMENTUM = 0.9
 _C.TRAIN.WEIGHT_DECAY = 0.0
 _C.TRAIN.BATCH_SIZE = 128
-_C.TRAIN.EPOCHS = 50
+_C.TRAIN.EPOCHS = 80
 _C.TRAIN.AGE_STDDEV = 1.0
 
 # Test
