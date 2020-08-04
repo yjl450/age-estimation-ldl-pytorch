@@ -169,7 +169,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count):
     for ind, p in enumerate(group_count):
         if p == 0:
             group_count[ind] = 1
-    print("Correct group rate:")
+    print("\nCorrect group rate:")
     print(correct_group/group_count)
     print("Correct age rate:")
     print(correct_count/group_count)
