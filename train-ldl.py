@@ -23,6 +23,21 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 import loss as L
 
+def get_group(age):
+    if 0 <= age <= 5:
+        return 0
+    if 6 <= age <= 10:
+        return 1
+    if 11 <= age <= 20:
+        return 2
+    if 21 <= age <= 30:
+        return 3
+    if 31 <= age <= 40:
+        return 4
+    if 41 <= age <= 60:
+        return 5
+    if 61 <= age:
+        return 6
 
 def get_args():
     model_names = sorted(name for name in pretrainedmodels.__dict__
@@ -106,17 +121,24 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
     return loss_monitor.avg, accuracy_monitor.avg
 
 
-def validate(validate_loader, model, criterion, epoch, device):
+def validate(validate_loader, model, criterion, epoch, device, group_count):
     model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
     preds = []
     gt = []
     rank = torch.Tensor([i for i in range(101)]).to(device)
-
+    correct_count = torch.zeros(7)
+    correct_group = torch.zeros(7)
+    to_count = False
+    if sum(group_count) == 0:
+        to_count = True
     with torch.no_grad():
         with tqdm(validate_loader) as _tqdm:
             for i, (x, y, lbl) in enumerate(_tqdm):
+                if to_count:
+                    for p in y:
+                        group_count[get_group(p.item())] += 1
                 x = x.to(device)
                 y = y.to(device)
                 lbl = lbl.to(device)
@@ -127,6 +149,13 @@ def validate(validate_loader, model, criterion, epoch, device):
                 ages = torch.sum(outputs*rank, dim=1)  # age expectation
                 preds.append(ages.cpu().numpy())  # append predicted age
                 gt.append(y.cpu().numpy())  # append real age
+
+                for ind, age in enumerate(ages): 
+                    if abs(y[ind].item() - age) < 1:
+                        correct_count[get_group(y[ind].item())] += 1
+                        correct_group[get_group(y[ind].item())] += 1
+                    elif get_group(y[ind].item()) == get_group(age):
+                        correct_group[get_group(y[ind].item())] += 1
 
                 # valid for validation, not used for test
                 if criterion is not None:
@@ -154,7 +183,15 @@ def validate(validate_loader, model, criterion, epoch, device):
     # ave_preds = (preds * ages).sum(axis=-1)
     mae = np.abs(preds - gt).mean()
 
-    return loss_monitor.avg, accuracy_monitor.avg, mae
+    for ind, p in enumerate(group_count):
+        if p == 0:
+            group_count[ind] = 1
+    print("Correct group rate:")
+    print(correct_group/group_count)
+    print("Correct age rate:")
+    print(correct_count/group_count)
+
+    return loss_monitor.avg, accuracy_monitor.avg, mae, (correct_group, correct_count)
 
 
 def main():
@@ -167,6 +204,9 @@ def main():
     start_epoch = 0
     checkpoint_dir = Path(args.checkpoint)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
+
+    group = {0:"0-5", 1:"6-10", 2:"11-20", 3:"21-30", 4:"31-40", 5:"41-60", 6:"61-"}
+    group_count = torch.zeros(7)
 
     # create model
     print("=> creating model '{}'".format(cfg.MODEL.ARCH))
@@ -238,7 +278,7 @@ def main():
             train_loader, model, criterion, optimizer, epoch, device)
 
         # validate
-        val_loss, val_acc, val_mae = validate(
+        val_loss, val_acc, val_mae, new_rate= validate(
             val_loader, model, criterion, epoch, device)
 
         if args.tensorboard is not None:
@@ -271,6 +311,7 @@ def main():
             )
             best_val_mae = val_mae
             best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
+            rate = new_rate
         else:
             print(
                 f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
@@ -282,6 +323,13 @@ def main():
     print(f"additional opts: {args.opts}")
     print(f"best val mae: {best_val_mae:.3f}")
     print("best mae saved model:", best_checkpoint)
+    
+    print("Correct group:")
+    print(rate[0])
+    print(rate[0]/group_count)
+    print("Correct age:")
+    print(rate[1])
+    print(rate[1]/group_count)
 
     x = np.arange(cfg.TRAIN.EPOCHS)
     plt.xlabel("Epoch")
