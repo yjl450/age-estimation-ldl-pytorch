@@ -260,7 +260,7 @@ def main():
         if Path(resume_path).is_file():
             print("=> loading checkpoint '{}'".format(resume_path))
             checkpoint = torch.load(resume_path, map_location="cpu")
-            start_epoch = checkpoint['epoch']
+            start_epoch = checkpoint['epoch'] - 1
             model.load_state_dict(checkpoint['state_dict'])
             print("=> loaded checkpoint '{}' (epoch {})"
                   .format(resume_path, checkpoint['epoch']))
@@ -287,14 +287,14 @@ def main():
     # validate
     if gender:
         if args.ldl:
-            val_loss, val_acc, val_mae, maes= validate_ldl(val_loader, model, criterion, epoch, device, group_count, gender_count)
+            val_loss, val_acc, val_mae, maes= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, gender_count)
         else:
-            val_loss, val_acc, val_mae, maes= validate(val_loader, model, criterion, epoch, device, group_count, gender_count)
+            val_loss, val_acc, val_mae, maes= validate(val_loader, model, criterion, start_epoch, device, group_count, gender_count)
     else:
         if args.ldl:
-            val_loss, val_acc, val_mae, maes= validate_ldl(val_loader, model, criterion, epoch, device, group_count)
+            val_loss, val_acc, val_mae, maes= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count)
         else:
-            val_loss, val_acc, val_mae, maes= validate(val_loader, model, criterion, epoch, device, group_count)
+            val_loss, val_acc, val_mae, maes= validate(val_loader, model, criterion, start_epoch, device, group_count)
 
 
     print("=> Validation finished")
