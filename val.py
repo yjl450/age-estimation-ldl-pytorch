@@ -284,8 +284,6 @@ def main():
                               img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, gender=gender)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
-    best_val_mae = 10000.0
-
     # validate
     if gender:
         if args.ldl:
@@ -301,7 +299,7 @@ def main():
 
     print("=> Validation finished")
     print(f"additional opts: {args.opts}")
-    print(f"best val mae: {best_val_mae:.3f}")
+    print(f"Val MAE: {val_mae:.4f}")
     
     group_mae = maes[0]
     print("Group MAE:")
