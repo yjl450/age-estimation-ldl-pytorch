@@ -50,7 +50,7 @@ def get_args():
                         required=True, help="Data root directory")
     parser.add_argument("--dataset", type=str,
                         required=True, help="Dataset name")
-    parser.add_argument("--resume", type=str, required=True default=None,
+    parser.add_argument("--resume", type=str, required=True, default=None,
                         help="Resume from checkpoint if any")
     parser.add_argument("--checkpoint", type=str,
                         default="checkpoint", help="Checkpoint directory")
