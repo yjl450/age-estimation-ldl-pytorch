@@ -154,7 +154,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count):
                     if abs(y[ind].item() - age) < 1:
                         correct_count[get_group(y[ind].item())] += 1
                         correct_group[get_group(y[ind].item())] += 1
-                    elif get_group(y[ind].item()) == get_group(age):
+                    if get_group(y[ind].item()) == get_group(age):
                         correct_group[get_group(y[ind].item())] += 1
 
                 # valid for validation, not used for test

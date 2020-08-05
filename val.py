@@ -50,7 +50,7 @@ def get_args():
                         required=True, help="Data root directory")
     parser.add_argument("--dataset", type=str,
                         required=True, help="Dataset name")
-    parser.add_argument("--resume", type=str, default=None,
+    parser.add_argument("--resume", type=str, required=True default=None,
                         help="Resume from checkpoint if any")
     parser.add_argument("--checkpoint", type=str,
                         default="checkpoint", help="Checkpoint directory")
@@ -58,6 +58,8 @@ def get_args():
                         default=None, help="Tensorboard log directory")
     parser.add_argument('--multi_gpu', action="store_true",
                         help="Use multi GPUs (data parallel)")
+    parser.add_argument('--ldl', action="store_true",
+                        help="Use KLDivLoss + L1 Loss")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
     args = parser.parse_args()
@@ -77,68 +79,105 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-
-def train(train_loader, model, criterion, optimizer, epoch, device):
-    model.train()
+def validate(validate_loader, model, criterion, epoch, device, group_count, gender_count="False"):
+    model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
-    rank = torch.Tensor([i for i in range(101)]).to(device)
+    preds = []
+    gt = []
+    group_mae = torch.zeros(7)
+    gender_mae = torch.zeros(2)
+    to_count = False
+    if sum(group_count) == 0:
+        to_count = True
+    with torch.no_grad():
+        with tqdm(validate_loader) as _tqdm:
+            for i, pack in enumerate(_tqdm):
+                x = pack[0]
+                y = pack[1]
+                if gender_count != "False":
+                    gender = pack[2]
+                if to_count:
+                    for ind, p in enumerate(y):
+                        group_count[get_group(p.item())] += 1
+                        if gender_count != "False":
+                            if gender[ind]:
+                                gender_count[1] += 1
+                            else:
+                                gender_count[0] += 1                        
+                x = x.to(device)
+                y = y.to(device)
 
-    with tqdm(train_loader) as _tqdm:
-        for x, y, lbl in _tqdm:
-            x = x.to(device)
-            y = y.to(device)
-            lbl = lbl.to(device)
+                # compute output
+                outputs = model(x)
+                pred_ages = F.softmax(outputs, dim=-1).cpu().numpy()
+                preds.append(pred_ages)
 
-            # compute output
-            outputs = model(x)
-            outputs = F.softmax(outputs, dim = 1)
-            ages = torch.sum(outputs*rank, dim=1)
+                for ind, age in enumerate(pred_ages):
+                    group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
+                    if gender_count != "False":
+                        gender_mae[gender[ind]] += abs(y[ind] - age) 
 
-            # calc loss
-            # loss = criterion(outputs, y)
-            loss1 = L.kl_loss(outputs, lbl)
-            loss2 = L.L1_loss(ages, y)
-            loss = loss1 + loss2
-            cur_loss = loss.item()
+                gt.append(y.cpu().numpy())
 
-            # calc accuracy
-            correct_num = (abs(ages - y) < 1).sum().item()
+                # valid for validation, not used for test
+                if criterion is not None:
+                    # calc loss
+                    loss = criterion(outputs, y)
+                    cur_loss = loss.item()
 
-            # measure accuracy and record loss
-            sample_num = x.size(0)
-            loss_monitor.update(cur_loss, sample_num)
-            accuracy_monitor.update(correct_num, sample_num)
+                    # calc accuracy
+                    _, predicted = outputs.max(1)
+                    correct_num = predicted.eq(y).sum().item()
 
-            # compute gradient and do SGD step
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+                    # measure accuracy and record loss
+                    sample_num = x.size(0)
+                    loss_monitor.update(cur_loss, sample_num)
+                    accuracy_monitor.update(correct_num, sample_num)
+                    _tqdm.set_postfix(OrderedDict(stage="val", epoch=epoch, loss=loss_monitor.avg),
+                                      acc=accuracy_monitor.avg, correct=correct_num, sample_num=sample_num)
 
-            _tqdm.set_postfix(OrderedDict(stage="train", epoch=epoch, loss=loss_monitor.avg),
-                              acc=accuracy_monitor.avg, correct=correct_num, sample_num=sample_num)
+    preds = np.concatenate(preds, axis=0)
+    gt = np.concatenate(gt, axis=0)
+    ages = np.arange(0, 101)
+    ave_preds = (preds * ages).sum(axis=-1)
+    diff = ave_preds - gt
+    mae = np.abs(diff).mean()
 
-    return loss_monitor.avg, accuracy_monitor.avg
+    if gender_count != "False":
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae)
+    else:
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae,)
 
 
-def validate(validate_loader, model, criterion, epoch, device, group_count):
+def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, gender_count="False"):
     model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
     preds = []
     gt = []
     rank = torch.Tensor([i for i in range(101)]).to(device)
-    correct_count = torch.zeros(7)
-    correct_group = torch.zeros(7)
+    group_mae = torch.zeros(7)
+    gender_mae = torch.zeros(2)
     to_count = False
     if sum(group_count) == 0:
         to_count = True
     with torch.no_grad():
         with tqdm(validate_loader) as _tqdm:
-            for i, (x, y, lbl) in enumerate(_tqdm):
+            for i, pack in enumerate(_tqdm): #(x, y, lbl)
+                x = pack[0]
+                y = pack[1]
+                lbl = pack[2]
+                if gender_count != "False":
+                    gender = pack[3]
                 if to_count:
-                    for p in y:
+                    for ind, p in enumerate(y):
                         group_count[get_group(p.item())] += 1
+                        if gender_count != "False":
+                            if gender[ind]:
+                                gender_count[1] += 1
+                            else:
+                                gender_count[0] += 1  
                 x = x.to(device)
                 y = y.to(device)
                 lbl = lbl.to(device)
@@ -150,12 +189,10 @@ def validate(validate_loader, model, criterion, epoch, device, group_count):
                 preds.append(ages.cpu().numpy())  # append predicted age
                 gt.append(y.cpu().numpy())  # append real age
 
-                for ind, age in enumerate(ages): 
-                    if abs(y[ind].item() - age) < 1:
-                        correct_count[get_group(y[ind].item())] += 1
-                        correct_group[get_group(y[ind].item())] += 1
-                    elif get_group(y[ind].item()) == get_group(age):
-                        correct_group[get_group(y[ind].item())] += 1
+                for ind, age in enumerate(ages):
+                    group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
+                    if gender_count != "False":
+                        gender_mae[gender[ind]] += abs(y[ind] - age) 
 
                 # valid for validation, not used for test
                 if criterion is not None:
@@ -179,19 +216,12 @@ def validate(validate_loader, model, criterion, epoch, device, group_count):
 
     preds = np.concatenate(preds, axis=0)
     gt = np.concatenate(gt, axis=0)
-    # ages = np.arange(0, 101)
-    # ave_preds = (preds * ages).sum(axis=-1)
     mae = np.abs(preds - gt).mean()
 
-    for ind, p in enumerate(group_count):
-        if p == 0:
-            group_count[ind] = 1
-    print("\nCorrect group rate:")
-    print(correct_group/group_count)
-    print("Correct age rate:")
-    print(correct_count/group_count)
-
-    return loss_monitor.avg, accuracy_monitor.avg, mae, (correct_group, correct_count)
+    if gender_count != "False":
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae)
+    else:
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae,)
 
 
 def main():
@@ -205,8 +235,9 @@ def main():
     checkpoint_dir = Path(args.checkpoint)
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
 
-    group = {0:"0-5", 1:"6-10", 2:"11-20", 3:"21-30", 4:"31-40", 5:"41-60", 6:"61-"}
+    group = {0:"  0-5", 1:" 6-10", 2:"11-20", 3:"21-30", 4:"31-40", 5:"41-60", 6:"  61-"}
     group_count = torch.zeros(7)
+    gender_count = torch.zeros(2)
 
     # create model
     print("=> creating model '{}'".format(cfg.MODEL.ARCH))
@@ -244,118 +275,44 @@ def main():
         cudnn.benchmark = True
 
     criterion = nn.CrossEntropyLoss().to(device)
-    # train_dataset = FaceDataset(args.data_dir, "train", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=True,
-    #                             age_stddev=cfg.TRAIN.AGE_STDDEV, label=True)
-    # train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                              num_workers=cfg.TRAIN.WORKERS, drop_last=False)
+
+    gender = False
+    if args.dataset == "Morph" or args.dataset == "imdb_wiki":
+        gender = True
 
     val_dataset = FaceDataset(args.data_dir, "valid", args.dataset,
-                              img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True)
+                              img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, gender=gender)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
-
-    # scheduler = StepLR(optimizer, step_size=cfg.TRAIN.LR_DECAY_STEP, gamma=cfg.TRAIN.LR_DECAY_RATE,
-    #                    last_epoch=start_epoch - 1)
     best_val_mae = 10000.0
-    # train_writer = None
-
-    if args.tensorboard is not None:
-        opts_prefix = "_".join(args.opts)
-        train_writer = SummaryWriter(
-            log_dir=args.tensorboard + "/" + opts_prefix + "_train")
-        val_writer = SummaryWriter(
-            log_dir=args.tensorboard + "/" + opts_prefix + "_val")
-
-    # all_train_loss = []
-    # all_train_accu = []
-    # all_val_loss = []
-    # all_val_accu = []
-
-    # range(start_epoch, cfg.TRAIN.EPOCHS):
-# for epoch in range(cfg.TRAIN.EPOCHS):
-    # train
-    # train_loss, train_acc = train(
-    #     train_loader, model, criterion, optimizer, epoch, device)
 
     # validate
-    val_loss, val_acc, val_mae, new_rate= validate(
-        val_loader, model, criterion, epoch, device, group_count)
-
-    if args.tensorboard is not None:
-        train_writer.add_scalar("loss", train_loss, epoch)
-        train_writer.add_scalar("acc", train_acc, epoch)
-        val_writer.add_scalar("loss", val_loss, epoch)
-        val_writer.add_scalar("acc", val_acc, epoch)
-        val_writer.add_scalar("mae", val_mae, epoch)
-
-    all_train_loss.append(float(train_loss))
-    all_train_accu.append(float(train_acc))
-    all_val_loss.append(float(val_loss))
-    all_val_accu.append(float(val_mae))
-
-    # checkpoint
-    if val_mae < best_val_mae:
-        print(
-            f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
-        model_state_dict = model.module.state_dict(
-        ) if args.multi_gpu else model.state_dict()
-        torch.save(
-            {
-                'epoch': epoch + 1,
-                'arch': cfg.MODEL.ARCH,
-                'state_dict': model_state_dict,
-                'optimizer_state_dict': optimizer.state_dict()
-            },
-            str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(
-                epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-        )
-        best_val_mae = val_mae
-        best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-        rate = new_rate
+    if gender:
+        if args.ldl:
+            val_loss, val_acc, val_mae, maes= validate_ldl(val_loader, model, criterion, epoch, device, group_count, gender_count)
+        else:
+            val_loss, val_acc, val_mae, maes= validate(val_loader, model, criterion, epoch, device, group_count, gender_count)
     else:
-        print(
-            f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
+        if args.ldl:
+            val_loss, val_acc, val_mae, maes= validate_ldl(val_loader, model, criterion, epoch, device, group_count)
+        else:
+            val_loss, val_acc, val_mae, maes= validate(val_loader, model, criterion, epoch, device, group_count)
 
-    # adjust learning rate
-    scheduler.step()
 
-    print("=> training finished")
+    print("=> Validation finished")
     print(f"additional opts: {args.opts}")
     print(f"best val mae: {best_val_mae:.3f}")
-    print("best mae saved model:", best_checkpoint)
     
-    print("Correct group:")
-    print(rate[0])
-    print(rate[0]/group_count)
-    print("Correct age:")
-    print(rate[1])
-    print(rate[1]/group_count)
+    group_mae = maes[0]
+    print("Group MAE:")
+    for ind, interval in enumerate(group.values()):
+        print(interval+":", (group_mae[ind]/group_count[ind]).item())
+    
+    if gender:
+        gender_mae = maes[1]
+        for ind, gen in enumerate(["  Male", "Female"]):
+            print(gen+":", (gender_mae[ind]/gender_count[ind]).item())
 
-    x = np.arange(cfg.TRAIN.EPOCHS)
-    plt.xlabel("Epoch")
-
-    plt.ylabel("Train Loss")
-    plt.plot(x, all_train_loss)
-    plt.savefig("savefig/{}_{}_{}_train_loss.png".format(args.dataset,
-                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
-    plt.clf()
-
-    plt.ylabel("Train Accuracy")
-    plt.plot(x, all_train_accu)
-    plt.savefig("savefig/{}_{}_{}_train_accu.png".format(args.dataset,
-                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
-    plt.clf()
-
-    plt.ylabel("Validation Loss")
-    plt.plot(x, all_val_loss)
-    plt.savefig("savefig/{}_{}_{}_val_loss.png".format(args.dataset,
-                                                       cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
-    plt.clf()
-
-    plt.ylabel("Validation Accuracy")
-    plt.plot(x, all_val_accu)
-    plt.savefig("savefig/{}_{}_{}_val_mae.png".format(args.dataset,
-                                                      cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
 
 
 if __name__ == '__main__':

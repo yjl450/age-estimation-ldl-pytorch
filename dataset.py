@@ -16,12 +16,13 @@ def normal_sampling(mean, label_k, std=2):
 
 
 class FaceDataset(Dataset):
-    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0, label = False):
+    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0, label = False, gender = False):
         assert(data_type in ("train", "valid", "test"))
         csv_path = Path(data_dir).joinpath(f"{dataset}_{data_type}_align.csv")
         img_dir = Path(data_dir)
         self.img_size = img_size
         self.label = label
+        self.gen = gender
         self.augment = augment
         self.age_stddev = age_stddev
         self.transform = transforms.Compose([
@@ -38,6 +39,8 @@ class FaceDataset(Dataset):
         self.rotate = []
         self.boxes = []
         df = pd.read_csv(str(csv_path))
+        if self.gen:
+            self.gender = []
 
         for _, row in df.iterrows():
             img_name = row["photo"]
@@ -46,6 +49,11 @@ class FaceDataset(Dataset):
             self.x.append(str(img_path))
             self.y.append(row["age"])
             self.rotate.append(row["deg"])
+            if self.gen:
+                if row["gender"] == "M" or row["gender"] == "male":
+                    self.gender.append(0)
+                if row["gender"] == "F" or row["gender"] == "female":
+                    self.gender.append(1)
             self.boxes.append(
                 [row["box1"], row["box2"], row["box3"], row["box4"]])
             # self.std.append(row["apparent_age_std"])
@@ -71,8 +79,12 @@ class FaceDataset(Dataset):
             label = [normal_sampling(int(age), i) for i in range(101)]
             label = [i if i > 1e-15 else 1e-15 for i in label]
             label = torch.Tensor(label)
+            if self.gen:
+                return img, int(age), label, self.gender[idx]
             return img, int(age), label
         else:
+            if self.gen:
+                return img, int(age), self.gender[idx]
             return img, int(age)
 
 

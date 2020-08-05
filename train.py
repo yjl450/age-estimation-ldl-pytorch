@@ -137,7 +137,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count):
                     if (int(y[ind].item()) == age):
                         correct_count[get_group(y[ind].item())] += 1
                         correct_group[get_group(y[ind].item())] += 1
-                    elif get_group(y[ind].item()) == get_group(age):
+                    if get_group(y[ind].item()) == get_group(age):
                         correct_group[get_group(y[ind].item())] += 1
 
                 gt.append(y.cpu().numpy())
