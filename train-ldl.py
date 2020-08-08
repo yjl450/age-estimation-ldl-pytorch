@@ -58,6 +58,8 @@ def get_args():
                         default=None, help="Tensorboard log directory")
     parser.add_argument('--multi_gpu', action="store_true",
                         help="Use multi GPUs (data parallel)")
+    parser.add_argument('--nocrop', action="store_false",
+                        help="Do not crop the input image")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
     args = parser.parse_args()
@@ -245,12 +247,12 @@ def main():
 
     criterion = nn.CrossEntropyLoss().to(device)
     train_dataset = FaceDataset(args.data_dir, "train", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=True,
-                                age_stddev=cfg.TRAIN.AGE_STDDEV, label=True)
+                                age_stddev=cfg.TRAIN.AGE_STDDEV, label=True, crop=args.crop)
     train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
                               num_workers=cfg.TRAIN.WORKERS, drop_last=False)
 
     val_dataset = FaceDataset(args.data_dir, "valid", args.dataset,
-                              img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True)
+                              img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, crop=args.crop)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
 
