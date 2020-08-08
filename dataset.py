@@ -16,7 +16,7 @@ def normal_sampling(mean, label_k, std=2):
 
 
 class FaceDataset(Dataset):
-    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0, label = False, gender = False):
+    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0, label = False, gender = False, crop = True):
         assert(data_type in ("train", "valid", "test"))
         csv_path = Path(data_dir).joinpath(f"{dataset}_{data_type}_align.csv")
         img_dir = Path(data_dir)
@@ -24,6 +24,7 @@ class FaceDataset(Dataset):
         self.label = label
         self.gen = gender
         self.augment = augment
+        self.crop = crop
         self.age_stddev = age_stddev
         self.transform = transforms.Compose([
             transforms.Resize((img_size, img_size)),
@@ -71,7 +72,8 @@ class FaceDataset(Dataset):
         # img.show()
         img = img.rotate(
             self.rotate[idx], resample=Image.BICUBIC, expand=True)  # Alignment
-        img = img.crop(self.boxes[idx])
+        if self.crop:
+            img = img.crop(self.boxes[idx])
         # img.show()
         img = self.transform(img)
         # print(img.shape)
