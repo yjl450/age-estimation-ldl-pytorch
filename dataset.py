@@ -72,6 +72,7 @@ class FaceDataset(Dataset):
         # img.show()
         img = img.rotate(
             self.rotate[idx], resample=Image.BICUBIC, expand=True)  # Alignment
+        # size = img.size        
         if self.crop:
             img = img.crop(self.boxes[idx])
         # img.show()
