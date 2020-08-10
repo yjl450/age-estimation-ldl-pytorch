@@ -17,7 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 import pretrainedmodels
 import pretrainedmodels.utils
 from model import get_model
-from dataset import FaceDataset, expand_bbox
+from dataset import FaceDataset, expand_bbox, normal_sampling
 from defaults import _C as cfg
 from datetime import datetime
 from matplotlib import pyplot as plt
