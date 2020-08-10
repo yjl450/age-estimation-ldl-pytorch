@@ -102,6 +102,9 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             # calc loss
             # loss = criterion(outputs, y)
             loss1 = L.kl_loss(outputs, lbl)
+            if torch.isnan(loss1) or torch.isinf(loss1):
+                print(loss1)
+                print("=============================================================")
             # print("Train loss1", loss1.item())
             loss2 = L.L1_loss(ages, y)
             loss = loss1 + loss2
