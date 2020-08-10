@@ -102,10 +102,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             # calc loss
             # loss = criterion(outputs, y)
             loss1 = L.kl_loss(outputs, lbl)
-            #TODO:
-            print("LOSS1", loss1)
             loss2 = L.L1_loss(ages, y)
-            print("LOSS2", loss2)
             loss = loss1 + loss2
             cur_loss = loss.item()
 
@@ -155,10 +152,8 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, get_
 
                 # compute output
                 outputs = model(x)
-                print("OUTPUT:", outputs)
                 outputs = F.softmax(outputs, dim = 1)
                 ages = torch.sum(outputs*rank, dim=1)  # age expectation
-                print("PRED", ages)
                 preds.append(ages.cpu().numpy())  # append predicted age
                 gt.append(y.cpu().numpy())  # append real age
 
@@ -181,10 +176,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, get_
                 if criterion is not None:
                     # calc loss
                     loss1 = L.kl_loss(outputs, lbl)
-                    #TODO:
-                    print("LOSS1", loss1)
                     loss2 = L.L1_loss(ages, y)
-                    print("LOSS2", loss2)
                     loss = loss1 + loss2
                     cur_loss = loss.item()
 
@@ -328,7 +320,7 @@ def main():
         all_val_accu.append(float(val_mae))
 
         # checkpoint
-        if (val_mae < best_val_mae) or (get_ca and (new_ca[3] < global_ca[3] or new_ca[5] < global_ca[5] or new_ca[7] < global_ca[7])):
+        if (val_mae < best_val_mae) or (get_ca and (new_ca[3] > global_ca[3] or new_ca[5] > global_ca[5] or new_ca[7] > global_ca[7])):
             print(
                 f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
             model_state_dict = model.module.state_dict(
