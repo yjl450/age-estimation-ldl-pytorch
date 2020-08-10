@@ -102,6 +102,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             # calc loss
             # loss = criterion(outputs, y)
             loss1 = L.kl_loss(outputs, lbl)
+            print("Train loss1", loss1.item())
             loss2 = L.L1_loss(ages, y)
             loss = loss1 + loss2
             cur_loss = loss.item()
@@ -176,6 +177,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, get_
                 if criterion is not None:
                     # calc loss
                     loss1 = L.kl_loss(outputs, lbl)
+                    print("val Loss1", loss1)
                     loss2 = L.L1_loss(ages, y)
                     loss = loss1 + loss2
                     cur_loss = loss.item()
