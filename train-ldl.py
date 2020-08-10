@@ -125,16 +125,19 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
     return loss_monitor.avg, accuracy_monitor.avg
 
 
-def validate(validate_loader, model, criterion, epoch, device, group_count):
+def validate(validate_loader, model, criterion, epoch, device, group_count, get_ca=False):
     model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
-    preds = []
+    preds = [] 
     gt = []
     rank = torch.Tensor([i for i in range(101)]).to(device)
     correct_count = torch.zeros(7)
     correct_group = torch.zeros(7)
     to_count = False
+    ca = None
+    if get_ca:
+        ca = {3:0, 5:0, 7:0}
     if sum(group_count) == 0:
         to_count = True
     with torch.no_grad():
@@ -160,6 +163,14 @@ def validate(validate_loader, model, criterion, epoch, device, group_count):
                         correct_group[get_group(y[ind].item())] += 1
                     if get_group(y[ind].item()) == get_group(age):
                         correct_group[get_group(y[ind].item())] += 1
+                    if ca is not None:
+                        if abs(y[ind].item() - age) < 3:
+                            ca[3] += 1
+                        if abs(y[ind].item() - age) < 5:
+                            ca[5] += 1
+                        if abs(y[ind].item() - age) < 7:
+                            ca[7] += 1
+                        
 
                 # valid for validation, not used for test
                 if criterion is not None:
@@ -187,15 +198,20 @@ def validate(validate_loader, model, criterion, epoch, device, group_count):
     # ave_preds = (preds * ages).sum(axis=-1)
     mae = np.abs(preds - gt).mean()
 
-    for ind, p in enumerate(group_count):
-        if p == 0:
-            group_count[ind] = 1
-    print("\nCorrect group rate:")
-    print(correct_group/group_count)
-    print("Correct age rate:")
-    print(correct_count/group_count)
-
-    return loss_monitor.avg, accuracy_monitor.avg, mae, (correct_group, correct_count)
+    # for ind, p in enumerate(group_count):
+    #     if p == 0:
+    #         group_count[ind] = 1
+    # print("\nCorrect group rate:")
+    # print(correct_group/group_count)
+    # print("Correct age rate:")
+    # print(correct_count/group_count)
+    if ca is not None:
+        for i in ca.keys():
+            ca[i] = ca[i] / torch.sum(group_count)
+        print("\n")
+        print("CA3: {:.2f} CA5: {:.2f} CA7: {:2f}".format(ca[3] * 100, ca[5]*100, ca[7]*100))
+    
+    return loss_monitor.avg, accuracy_monitor.avg, mae, (correct_group, correct_count, ca)
 
 
 def main():
@@ -246,6 +262,8 @@ def main():
 
     if device == "cuda":
         cudnn.benchmark = True
+    
+    get_ca = True if "megaage" in args.dataset else False
 
     criterion = nn.CrossEntropyLoss().to(device)
     train_dataset = FaceDataset(args.data_dir, "train", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=args.aug,
@@ -262,6 +280,7 @@ def main():
                        last_epoch=start_epoch - 1)
     best_val_mae = 10000.0
     train_writer = None
+    global_ca = {3: 10000.0, 5: 10000.0, 7: 10000.0}
 
     if args.tensorboard is not None:
         opts_prefix = "_".join(args.opts)
@@ -283,8 +302,10 @@ def main():
 
         # validate
         val_loss, val_acc, val_mae, new_rate= validate(
-            val_loader, model, criterion, epoch, device, group_count)
-
+            val_loader, model, criterion, epoch, device, group_count, get_ca)
+        if get_ca:
+            new_ca = new_rate[2]
+        
         if args.tensorboard is not None:
             train_writer.add_scalar("loss", train_loss, epoch)
             train_writer.add_scalar("acc", train_acc, epoch)
@@ -298,7 +319,7 @@ def main():
         all_val_accu.append(float(val_mae))
 
         # checkpoint
-        if val_mae < best_val_mae:
+        if (val_mae < best_val_mae) or (get_ca and (new_ca[3] < global_ca[3] or new_ca[5] < global_ca[5] or new_ca[7] < global_ca[7])):
             print(
                 f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
             model_state_dict = model.module.state_dict(
@@ -316,6 +337,8 @@ def main():
             best_val_mae = val_mae
             best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
             rate = new_rate
+            if get_ca:
+                global_ca = new_ca
         else:
             print(
                 f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
@@ -326,6 +349,8 @@ def main():
     print("=> training finished")
     print(f"additional opts: {args.opts}")
     print(f"best val mae: {best_val_mae:.3f}")
+    if get_ca:
+        print("CA3: {:.2f} CA5: {:.2f} CA7: {:2f}".format(global_ca[3] * 100, global_ca[5]*100, global_ca[7]*100))
     print("best mae saved model:", best_checkpoint)
     
     print("Correct group:")

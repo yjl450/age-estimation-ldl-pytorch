@@ -363,8 +363,8 @@ def main():
         for ind, gen in enumerate(["  Male", "Female"]):
             print(gen+":", (gender_mae[ind]/gender_count[ind]).item())
     csv_path = resume_path.split("/")[-1]
-    csv_path = csv_path.split(".")[0]
-    df.to_csv("csv/"+csv_path+".csv")
+    csv_path = csv_path[:-4]
+    df.to_csv("csv/"+_path+".csv", index=False)
 
 
 if __name__ == '__main__':
