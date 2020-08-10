@@ -22,6 +22,7 @@ from defaults import _C as cfg
 from datetime import datetime
 from matplotlib import pyplot as plt
 import loss as L
+import pandas as pd
 
 def get_group(age):
     if 0 <= age <= 5:
@@ -38,6 +39,43 @@ def get_group(age):
         return 5
     if 61 <= age:
         return 6
+
+class FaceVal(FaceDataset):
+    def __getitem__(self, idx):
+        img_path = self.x[idx]
+        age = self.y[idx]
+
+        img = Image.open(img_path)
+        if img.mode != "RGB":
+            img = img.convert("RGB")
+        img = img.rotate(
+            self.rotate[idx], resample=Image.BICUBIC, expand=True)  # Alignment
+        # size = img.size
+        if self.crop:
+            img = img.crop(expand_bbox(img.size, self.boxes[idx]))
+        else:
+            img = img.crop(self.boxes[idx])
+        # img = self.transform(img)
+
+        image_np = np.array(img)
+        if self.augment:
+            augmented = self.transform_aug(image = image_np)
+        else:
+            augmented = self.transform(image = image_np)
+        img = augmented["image"]
+
+        if self.label:
+            label = [normal_sampling(int(age), i) for i in range(101)]
+            label = [i if i > 1e-15 else 1e-15 for i in label]
+            label = torch.Tensor(label)
+            if self.gen:
+                return img, int(age), label, self.gender[idx], img_path
+            return img, int(age), label, img_path
+        else:
+            if self.gen:
+                return img, int(age), self.gender[idx], img_path
+            return img, int(age), img_path
+
 
 def get_args():
     model_names = sorted(name for name in pretrainedmodels.__dict__
@@ -88,6 +126,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
     group_mae = torch.zeros(7)
     gender_mae = torch.zeros(2)
     to_count = False
+    error = []
     if sum(group_count) == 0:
         to_count = True
     with torch.no_grad():
@@ -95,6 +134,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
             for i, pack in enumerate(_tqdm):
                 x = pack[0]
                 y = pack[1]
+                path = pack[-1]
                 if gender_count != "False":
                     gender = pack[2]
                 if to_count:
@@ -116,7 +156,9 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
                 for ind, age in enumerate(pred_ages):
                     group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
                     if gender_count != "False":
-                        gender_mae[gender[ind]] += abs(y[ind] - age) 
+                        gender_mae[gender[ind]] += abs(y[ind] - age)
+                    if abs(y[ind] - age) > 3:
+                        error.append([path[ind], y[ind], age, abs(y[ind] - age)])
 
                 gt.append(y.cpu().numpy())
 
@@ -144,10 +186,12 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
     diff = ave_preds - gt
     mae = np.abs(diff).mean()
 
+    df = pd.DataFrame(error, columns = ["photo", "age", "pred", "error"])
+
     if gender_count != "False":
-        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae)
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae), df
     else:
-        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae,)
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae,), df
 
 
 def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, gender_count="False"):
@@ -160,6 +204,7 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
     group_mae = torch.zeros(7)
     gender_mae = torch.zeros(2)
     to_count = False
+    error = []
     if sum(group_count) == 0:
         to_count = True
     with torch.no_grad():
@@ -168,6 +213,7 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                 x = pack[0]
                 y = pack[1]
                 lbl = pack[2]
+                path = pack[-1]
                 if gender_count != "False":
                     gender = pack[3]
                 if to_count:
@@ -193,6 +239,8 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                     group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
                     if gender_count != "False":
                         gender_mae[gender[ind]] += abs(y[ind] - age) 
+                    if abs(y[ind] - age) > 3:
+                        error.append([path[ind], y[ind], age, abs(y[ind] - age)])
 
                 # valid for validation, not used for test
                 if criterion is not None:
@@ -218,10 +266,12 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
     gt = np.concatenate(gt, axis=0)
     mae = np.abs(preds - gt).mean()
 
+    df = pd.DataFrame(error, columns = ["photo", "age", "pred", "error"])
+
     if gender_count != "False":
-        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae)
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae), df
     else:
-        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae,)
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae,), df
 
 
 def main():
@@ -280,21 +330,22 @@ def main():
     if args.dataset == "Morph" or args.dataset == "imdb_wiki":
         gender = True
 
-    val_dataset = FaceDataset(args.data_dir, "valid", args.dataset,
+    val_dataset = FaceVal(args.data_dir, "valid", args.dataset,
                               img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, gender=gender)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
+    print(len(val_dataset))
     # validate
     if gender:
         if args.ldl:
-            val_loss, val_acc, val_mae, maes= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, gender_count)
+            val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, gender_count)
         else:
-            val_loss, val_acc, val_mae, maes= validate(val_loader, model, criterion, start_epoch, device, group_count, gender_count)
+            val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count, gender_count)
     else:
         if args.ldl:
-            val_loss, val_acc, val_mae, maes= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count)
+            val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count)
         else:
-            val_loss, val_acc, val_mae, maes= validate(val_loader, model, criterion, start_epoch, device, group_count)
+            val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count)
 
 
     print("=> Validation finished")
@@ -310,7 +361,7 @@ def main():
         gender_mae = maes[1]
         for ind, gen in enumerate(["  Male", "Female"]):
             print(gen+":", (gender_mae[ind]/gender_count[ind]).item())
-
+    df.to_csv("csv/"+resume_path+".csv")
 
 
 if __name__ == '__main__':
