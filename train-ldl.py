@@ -177,7 +177,6 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, get_
                 if criterion is not None:
                     # calc loss
                     loss1 = L.kl_loss(outputs, lbl)
-                    print("val Loss1", loss1)
                     loss2 = L.L1_loss(ages, y)
                     loss = loss1 + loss2
                     cur_loss = loss.item()
