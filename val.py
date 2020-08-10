@@ -23,6 +23,7 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 import loss as L
 import pandas as pd
+from PIL import Image
 
 def get_group(age):
     if 0 <= age <= 5:
