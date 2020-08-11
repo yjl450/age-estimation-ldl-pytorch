@@ -358,6 +358,10 @@ def main():
         print("CA3: {:.2f} CA5: {:.2f} CA7: {:2f}".format(global_ca[3] * 100, global_ca[5]*100, global_ca[7]*100))
     print("best mae saved model:", best_checkpoint)
     
+    for ind, g in enumerate(group_count):
+        if g == 0:
+            group_count[ind] += 1
+
     print("Correct group:")
     print(rate[0])
     print(rate[0]/group_count)
