@@ -32,7 +32,7 @@ def expand_bbox(size, bbox_list, ratio = 0.4):
 
 
 class FaceDataset(Dataset):
-    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0, label=False, gender=False, crop=True):
+    def __init__(self, data_dir, data_type, dataset, img_size=224, augment=False, age_stddev=1.0, label=False, gender=False, expand=0.0):
         assert(data_type in ("train", "valid", "test"))
         csv_path = Path(data_dir).joinpath(f"{dataset}_{data_type}_align.csv")
         img_dir = Path(data_dir)
@@ -40,7 +40,7 @@ class FaceDataset(Dataset):
         self.label = label
         self.gen = gender
         self.augment = augment
-        self.crop = crop
+        self.expand = expand
         self.age_stddev = age_stddev
         # self.transform = transforms.Compose([
         #     transforms.Resize((img_size, img_size)),
@@ -108,8 +108,8 @@ class FaceDataset(Dataset):
         img = img.rotate(
             self.rotate[idx], resample=Image.BICUBIC, expand=True)  # Alignment
         # size = img.size
-        if self.crop:
-            img = img.crop(expand_bbox(img.size, self.boxes[idx]))
+        if self.expand > 0:
+            img = img.crop(expand_bbox(img.size, self.boxes[idx], ratio= self.expand))
         else:
             img = img.crop(self.boxes[idx])
         # img = self.transform(img)
