@@ -3,3 +3,4 @@
 tempCodeRunnerFile.py
 *.sbatch
 *.out
+*.png
