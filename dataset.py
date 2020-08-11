@@ -17,7 +17,7 @@ from albumentations.pytorch import ToTensorV2
 def normal_sampling(mean, label_k, std=2):
     return math.exp(-(label_k-mean)**2/(2*std**2))/(math.sqrt(2*math.pi)*std)
 
-def expand_bbox(size, bbox_list, ratio = 0.4):
+def expand_bbox(size, bbox_list, ratio = 0.2):
     width = bbox_list[2] - bbox_list[0]
     height = bbox_list[3] - bbox_list[1]
     new_bbox = []
