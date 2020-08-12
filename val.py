@@ -99,6 +99,7 @@ def get_args():
                         help="Use multi GPUs (data parallel)")
     parser.add_argument('--ldl', action="store_true",
                         help="Use KLDivLoss + L1 Loss")
+    parser.add_argument('--expand', type=float, default=0, help="expand the crop area [0, 1)")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
     args = parser.parse_args()
@@ -333,7 +334,7 @@ def main():
         gender = True
 
     val_dataset = FaceVal(args.data_dir, "valid", args.dataset,
-                              img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, gender=gender)
+                              img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, gender=gender, expand = args.expand)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
     print(len(val_dataset))
