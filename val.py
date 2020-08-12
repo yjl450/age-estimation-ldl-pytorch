@@ -234,7 +234,6 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                 outputs = model(x)
                 outputs = F.softmax(outputs, dim = 1)
                 ages = torch.sum(outputs*rank, dim=1)  # age expectation
-                print(ages)
                 preds.append(ages.cpu().numpy())  # append predicted age
                 gt.append(y.cpu().numpy())  # append real age
 
