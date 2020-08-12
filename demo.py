@@ -15,7 +15,6 @@ import torch.nn.functional as F
 from model import get_model
 from defaults import _C as cfg
 
-
 def get_args():
     parser = argparse.ArgumentParser(description="Age estimation demo",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -27,6 +26,8 @@ def get_args():
                         help="Target image directory; if set, images in image_dir are used instead of webcam")
     parser.add_argument("--output_dir", type=str, default=None,
                         help="Output directory to which resulting images will be stored if set")
+    parser.add_argument('--ldl', action="store_true",
+                        help="Use KLDivLoss + L1 Loss")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
     args = parser.parse_args()
@@ -126,6 +127,7 @@ def main():
     detector = dlib.get_frontal_face_detector()
     img_size = cfg.MODEL.IMG_SIZE
     image_generator = yield_images_from_dir(img_dir) if img_dir else yield_images()
+    rank = torch.Tensor([i for i in range(101)]).to(device)
 
     with torch.no_grad():
         for img, name in image_generator:
@@ -149,9 +151,11 @@ def main():
 
                 # predict ages
                 inputs = torch.from_numpy(np.transpose(faces.astype(np.float32), (0, 3, 1, 2))).to(device)
-                outputs = F.softmax(model(inputs), dim=-1).cpu().numpy()
-                ages = np.arange(0, 101)
-                predicted_ages = (outputs * ages).sum(axis=-1)
+                outputs = F.softmax(model(inputs), dim=-1)
+                if args.ldl:
+                    predicted_ages = torch.sum(outputs * rank, dim = -1)
+                else:
+                    _, predicted_ages = outputs.max(1)
 
                 # draw results
                 for i, d in enumerate(detected):
