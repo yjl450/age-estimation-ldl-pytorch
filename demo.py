@@ -182,6 +182,7 @@ def main():
 
                 if args.expand > 0:
                     box = expand_bbox(image.size, detected[0], ratio= args.expand)
+                    print(box)
                     image = image.crop(box)
                 else:
                     box = detected[0]
