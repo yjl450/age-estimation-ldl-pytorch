@@ -159,7 +159,7 @@ def main():
             input_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(input_img)
             detected, probs = mtcnn.detect(image)
-            detected = detected.astype(int)
+            detected = detected.astype(int)[0]
 
             img_h, img_w = image.size
 
@@ -202,7 +202,6 @@ def main():
                     predicted_ages = torch.sum(outputs * rank, dim = 1)
                 else:
                     _, predicted_ages = outputs.max(1)
-                # print(predicted_ages)
 
                 # draw results
                 for i, d in enumerate(detected):
