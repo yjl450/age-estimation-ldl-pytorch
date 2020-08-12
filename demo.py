@@ -18,6 +18,9 @@ from defaults import _C as cfg
 from time import perf_counter
 from facenet_pytorch import MTCNN
 from PIL import Image
+from dataset import expand_bbox
+import albumentations as A
+from albumentations.pytorch import ToTensorV2
 
 def get_args():
     parser = argparse.ArgumentParser(description="Age estimation demo",
@@ -32,6 +35,7 @@ def get_args():
                         help="Output directory to which resulting images will be stored if set")
     parser.add_argument('--ldl', action="store_true",
                         help="Use KLDivLoss + L1 Loss")
+    parser.add_argument('--expand', type=float, default=0, help="expand the crop area [0, 1)")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
     args = parser.parse_args()
@@ -135,10 +139,19 @@ def main():
     margin = args.margin
     img_dir = args.img_dir
     detector = dlib.get_frontal_face_detector()
-    mtcnn = MTCNN(device=device, post_process=False)
+    mtcnn = MTCNN(device=device, post_process=False, keep_all=False)
     img_size = cfg.MODEL.IMG_SIZE
     image_generator = yield_images_from_dir(img_dir) if img_dir else yield_images()
     rank = torch.Tensor([i for i in range(101)]).to(device)
+
+    transform = A.Compose([
+        A.Resize(img_size, img_size),
+        A.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        ),
+        ToTensorV2()
+    ])
 
     with torch.no_grad():
         for img, name in image_generator:
@@ -154,23 +167,40 @@ def main():
             # print(detected)
 
             if detected is not None and len(detected) > 0:
-                faces = torch.zeros((len(detected), 3, img_size, img_size))
-                for i, d in enumerate(detected):
-                    # x1, y1, x2, y2, w, h = d.left(), d.top(), d.right() + 1, d.bottom() + 1, d.width(), d.height()
-                    x1, y1, x2, y2, w, h = d[0], d[1], d[2], d[3], d[2]-d[0], d[3]-d[1]
-                    xw1 = max(int(x1 - margin * w), 0)
-                    yw1 = max(int(y1 - margin * h), 0)
-                    xw2 = min(int(x2 + margin * w), img_w - 1)
-                    yw2 = min(int(y2 + margin * h), img_h - 1)
-                    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 255, 255), 2)
-                    cv2.rectangle(img, (xw1, yw1), (xw2, yw2), (255, 0, 0), 2)
-                    faces[i] = torch.Tensor(cv2.resize(img[yw1:yw2 + 1, xw1:xw2 + 1], (img_size, img_size))).permute(2, 0, 1)
-                print(faces.shape)
+                # faces = torch.zeros((len(detected), 3, img_size, img_size))
+                # for i, d in enumerate(detected):
+                #     # x1, y1, x2, y2, w, h = d.left(), d.top(), d.right() + 1, d.bottom() + 1, d.width(), d.height()
+                #     x1, y1, x2, y2, w, h = d[0], d[1], d[2], d[3], d[2]-d[0], d[3]-d[1]
+                #     xw1 = max(int(x1 - margin * w), 0)
+                #     yw1 = max(int(y1 - margin * h), 0)
+                #     xw2 = min(int(x2 + margin * w), img_w - 1)
+                #     yw2 = min(int(y2 + margin * h), img_h - 1)
+                #     cv2.rectangle(img, (x1, y1), (x2, y2), (255, 255, 255), 2)
+                #     cv2.rectangle(img, (xw1, yw1), (xw2, yw2), (255, 0, 0), 2)
+                #     faces[i] = torch.Tensor(cv2.resize(img[yw1:yw2 + 1, xw1:xw2 + 1], (img_size, img_size))).permute(2, 0, 1)
+                # print(faces.shape)
+
+                if args.expand > 0:
+                    box = expand_bbox(image.size, detected[0], ratio= args.expand)
+                    image = image.crop(box)
+                else:
+                    box = detected[0]
+                    image = image.crop(detected[0])
+                cv2.rectangle(img, (detected[0][0], detected[0][1]), (detected[0][2], detected[0][3]), (255, 255, 255), 2)
+                cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (255, 0, 0), 2)
+
+                
+                image_np = np.array(image)
+                augmented = transform(image = image_np)
+                image = augmented["image"]
+                image = image.unsqueeze(0).to(device)
+                print(image.shape)
+
             #     # predict ages
-                outputs = model(faces.to(device))
-                outputs = F.softmax(outputs, dim=-1)
+                outputs = model(image)
+                outputs = F.softmax(outputs, dim=1)
                 if args.ldl:
-                    predicted_ages = torch.sum(outputs * rank, dim = -1)
+                    predicted_ages = torch.sum(outputs * rank, dim = 1)
                 else:
                     _, predicted_ages = outputs.max(1)
                 print(predicted_ages)
@@ -178,10 +208,10 @@ def main():
                 # draw results
                 for i, d in enumerate(detected):
                     label = "{}".format(int(predicted_ages[i]))
-                    draw_label(img, (d[0], d[1]), label)
+                    draw_label(img, (int(d[0]), int(d[1])), label)
 
-                faces = np.array(faces.permute(1, 2, 0)).astype(np.uint8)
-                faces = cv2.cvtColor(faces, cv2.COLOR_RGB2BGR)
+                # faces = np.array(faces.permute(1, 2, 0)).astype(np.uint8)
+                # faces = cv2.cvtColor(faces, cv2.COLOR_RGB2BGR)
 
             if args.output_dir is not None:
                 output_path = output_dir.joinpath(name)
