@@ -159,6 +159,7 @@ def main():
             input_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(input_img)
             detected, probs = mtcnn.detect(image)
+            detected = detected.astype(int)
 
             img_h, img_w = image.size
 
@@ -182,15 +183,12 @@ def main():
 
                 if args.expand > 0:
                     box = expand_bbox(image.size, detected[0], ratio= args.expand)
-                    print(box)
-                    image = image.crop(box)
                 else:
                     box = detected[0]
-                    image = image.crop(detected[0])
+                image = image.crop(box)
                 cv2.rectangle(img, (detected[0][0], detected[0][1]), (detected[0][2], detected[0][3]), (255, 255, 255), 2)
                 cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (255, 0, 0), 2)
 
-                
                 image_np = np.array(image)
                 augmented = transform(image = image_np)
                 image = augmented["image"]
@@ -219,7 +217,7 @@ def main():
                 cv2.imwrite(str(output_path), img)
             else:
                 elapsed = perf_counter() - start
-                cv2.putText(img, "FPS: "+ "{:.1f}".format(60/elapsed),(10,20),cv2.FONT_HERSHEY_DUPLEX,0.5,(255, 255,255),1)
+                cv2.putText(img, "FPS: "+ "{:.1f} Press ESC to exit".format(60/elapsed),(10,20),cv2.FONT_HERSHEY_DUPLEX,0.5,(255, 255,255),1)
                 cv2.imshow("result", img)
                 key = cv2.waitKey(-1) if img_dir else cv2.waitKey(30)
 

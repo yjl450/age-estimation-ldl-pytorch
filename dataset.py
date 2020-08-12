@@ -26,7 +26,7 @@ def expand_bbox(size, bbox_list, ratio = 0.2):
         to_append = coor + expand[ind]
         to_append = 0 if to_append < 0 else to_append
         to_append = size[ind % 2] if to_append > size[ind % 2] else to_append
-        new_bbox.append(to_append)
+        new_bbox.append(int(to_append))
     return new_bbox
 
 
