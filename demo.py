@@ -6,7 +6,7 @@ import urllib.request
 import facenet_pytorch
 import numpy as np
 import cv2
-import dlib
+# import dlib
 import torch
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
@@ -138,7 +138,7 @@ def main():
     model.eval()
     margin = args.margin
     img_dir = args.img_dir
-    detector = dlib.get_frontal_face_detector()
+    # detector = dlib.get_frontal_face_detector()
     mtcnn = MTCNN(device=device, post_process=False, keep_all=False)
     img_size = cfg.MODEL.IMG_SIZE
     image_generator = yield_images_from_dir(img_dir) if img_dir else yield_images()
