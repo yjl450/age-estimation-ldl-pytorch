@@ -206,7 +206,7 @@ def main():
                 # draw results
                 # for i, d in enumerate(detected):
                 label = "{}".format(int(predicted_ages[0]))
-                draw_label(img, int(detected[0][0], detected[0][1]), label)
+                draw_label(img, (detected[0][0], detected[0][1]), label)
 
                 # faces = np.array(faces.permute(1, 2, 0)).astype(np.uint8)
                 # faces = cv2.cvtColor(faces, cv2.COLOR_RGB2BGR)
