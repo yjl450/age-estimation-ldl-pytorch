@@ -159,8 +159,6 @@ def main():
             input_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(input_img)
             detected, probs = mtcnn.detect(image)
-            detected = detected.astype(int)
-
             img_h, img_w = image.size
 
             # # detect faces using dlib detector
@@ -168,6 +166,7 @@ def main():
             # print(detected)
 
             if detected is not None and len(detected) > 0:
+                detected = detected.astype(int)
                 # faces = torch.zeros((len(detected), 3, img_size, img_size))
                 # for i, d in enumerate(detected):
                 #     # x1, y1, x2, y2, w, h = d.left(), d.top(), d.right() + 1, d.bottom() + 1, d.width(), d.height()
