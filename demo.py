@@ -175,13 +175,13 @@ def main():
                     _, predicted_ages = outputs.max(1)
                 print(predicted_ages)
 
-            # draw results
-            # for i, d in enumerate(detected):
-            #     label = "{}".format(int(predicted_ages[i]))
-            #     draw_label(img, (d.left(), d.top()), label)
+                # draw results
+                for i, d in enumerate(detected):
+                    label = "{}".format(int(predicted_ages[i]))
+                    draw_label(img, (d[0], d[1]), label)
 
-            # faces = np.array(faces.permute(1, 2, 0)).astype(np.uint8)
-            # faces = cv2.cvtColor(faces, cv2.COLOR_RGB2BGR)
+                faces = np.array(faces.permute(1, 2, 0)).astype(np.uint8)
+                faces = cv2.cvtColor(faces, cv2.COLOR_RGB2BGR)
 
             if args.output_dir is not None:
                 output_path = output_dir.joinpath(name)
