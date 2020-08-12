@@ -159,7 +159,7 @@ def main():
             input_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(input_img)
             detected, probs = mtcnn.detect(image)
-            detected = detected.astype(int)[0]
+            detected = detected.astype(int)
 
             img_h, img_w = image.size
 
@@ -204,9 +204,9 @@ def main():
                     _, predicted_ages = outputs.max(1)
 
                 # draw results
-                for i, d in enumerate(detected):
-                    label = "{}".format(int(predicted_ages[i]))
-                    draw_label(img, (int(d[0]), int(d[1])), label)
+                # for i, d in enumerate(detected):
+                label = "{}".format(int(predicted_ages[0]))
+                draw_label(img, int(detected[0][0], detected[0][1]), label)
 
                 # faces = np.array(faces.permute(1, 2, 0)).astype(np.uint8)
                 # faces = cv2.cvtColor(faces, cv2.COLOR_RGB2BGR)
