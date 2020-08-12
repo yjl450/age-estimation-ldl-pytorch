@@ -22,7 +22,7 @@ from PIL import Image
 def get_args():
     parser = argparse.ArgumentParser(description="Age estimation demo",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--resume", type=str, default=None,
+    parser.add_argument("--resume", type=str, required = True,
                         help="Model weight to be tested")
     parser.add_argument("--margin", type=float, default=0,
                         help="Margin around detected face for age-gender estimation")
