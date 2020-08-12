@@ -52,7 +52,7 @@ class FaceVal(FaceDataset):
         img = img.rotate(
             self.rotate[idx], resample=Image.BICUBIC, expand=True)  # Alignment
         # size = img.size
-        if self.crop:
+        if self.expand:
             img = img.crop(expand_bbox(img.size, self.boxes[idx]))
         else:
             img = img.crop(self.boxes[idx])
