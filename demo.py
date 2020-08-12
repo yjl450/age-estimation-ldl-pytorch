@@ -194,7 +194,7 @@ def main():
                 augmented = transform(image = image_np)
                 image = augmented["image"]
                 image = image.unsqueeze(0).to(device)
-                print(image.shape)
+                # print(image.shape)
 
             #     # predict ages
                 outputs = model(image)
@@ -203,7 +203,7 @@ def main():
                     predicted_ages = torch.sum(outputs * rank, dim = 1)
                 else:
                     _, predicted_ages = outputs.max(1)
-                print(predicted_ages)
+                # print(predicted_ages)
 
                 # draw results
                 for i, d in enumerate(detected):
