@@ -188,7 +188,6 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
     ave_preds = (preds * ages).sum(axis=-1)
     diff = ave_preds - gt
     mae = np.abs(diff).mean()
-    print(error)
     df = pd.DataFrame(error, columns = ["photo", "age", "pred", "error"])
 
     if gender_count != "False":
@@ -245,7 +244,7 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                     if gender_count != "False":
                         gender_mae[gender[ind]] += abs(y[ind] - age) 
                     if abs(y[ind] - age) > 3:
-                        error.append([path[ind], y[ind], age, abs(y[ind] - age)])
+                        error.append([path[ind], y[ind].item(), age.item(), abs(y[ind] - age).item()])
 
                 # valid for validation, not used for test
                 if criterion is not None:
