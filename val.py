@@ -64,8 +64,8 @@ class FaceVal(FaceDataset):
         else:
             augmented = self.transform(image = image_np)
         img = augmented["image"]
-        if torch.isnan(img).any() or torch.isinf(img).any():
-            print(img_path[idx])
+        # if torch.isnan(img).any() or torch.isinf(img).any():
+        #     print(img_path[idx])
         if self.label:
             label = [normal_sampling(int(age), i) for i in range(101)]
             label = [i if i > 1e-15 else 1e-15 for i in label]
@@ -217,8 +217,9 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                 y = pack[1]
                 lbl = pack[2]
                 path = pack[-1]
-                # if torch.isnan(x).any() or torch.isinf(x).any():
-                #     print(path)
+                if torch.isnan(x).any() or torch.isinf(x).any():
+                    print(x)
+                    return
                 if gender_count != "False":
                     gender = pack[3]
                 if to_count:
