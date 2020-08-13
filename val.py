@@ -216,6 +216,8 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                 y = pack[1]
                 lbl = pack[2]
                 path = pack[-1]
+                if torch.isnan(x).any() or torch.isinf(x).any():
+                    print(path)
                 if gender_count != "False":
                     gender = pack[3]
                 if to_count:
@@ -238,8 +240,6 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                 gt.append(y.cpu().numpy())  # append real age
 
                 for ind, age in enumerate(ages):
-                    if torch.isnan(age).any() or torch.isinf(age).any():
-                        print(path[ind])
                     group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
                     if gender_count != "False":
                         gender_mae[gender[ind]] += abs(y[ind] - age) 
