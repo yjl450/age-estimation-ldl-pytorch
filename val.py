@@ -217,8 +217,6 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                 y = pack[1]
                 lbl = pack[2]
                 path = pack[-1]
-                if torch.isnan(x).any() or torch.isinf(x).any():
-                    print(x)
                 if gender_count != "False":
                     gender = pack[3]
                 if to_count:
@@ -235,6 +233,8 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
 
                 # compute output
                 outputs = model(x)
+                if torch.isnan(outputs).any() or torch.isinf(outputs).any():
+                    print(outputs)
                 outputs = F.softmax(outputs, dim = 1)
                 ages = torch.sum(outputs*rank, dim=1)  # age expectation
                 preds.append(ages.cpu().numpy())  # append predicted age
