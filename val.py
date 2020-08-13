@@ -188,7 +188,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
     ave_preds = (preds * ages).sum(axis=-1)
     diff = ave_preds - gt
     mae = np.abs(diff).mean()
-
+    print(error)
     df = pd.DataFrame(error, columns = ["photo", "age", "pred", "error"])
 
     if gender_count != "False":
