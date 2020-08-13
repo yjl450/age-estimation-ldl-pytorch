@@ -4,3 +4,4 @@ tempCodeRunnerFile.py
 *.sbatch
 *.out
 *.png
+.ipynb_checkpoints/*
