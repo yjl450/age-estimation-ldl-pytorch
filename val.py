@@ -219,7 +219,6 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                 path = pack[-1]
                 if torch.isnan(x).any() or torch.isinf(x).any():
                     print(x)
-                    return
                 if gender_count != "False":
                     gender = pack[3]
                 if to_count:
