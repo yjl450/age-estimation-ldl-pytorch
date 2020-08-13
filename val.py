@@ -161,7 +161,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
                     if gender_count != "False":
                         gender_mae[gender[ind]] += abs(y[ind] - age)
                     if abs(y[ind] - age) > 3:
-                        error.append([path[ind], y[ind], age, abs(y[ind] - age)])
+                        error.append([path[ind], y[ind].item(), age.item(), abs(y[ind] - age).item()])
 
                 gt.append(y.cpu().numpy())
 
