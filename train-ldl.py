@@ -262,7 +262,7 @@ def main():
     if device == "cuda":
         cudnn.benchmark = True
     
-    get_ca = True if "megaage" in args.dataset else False
+    get_ca = True if "megaage" in args.dataset else True
     if get_ca:
         print("Cummulative Accuracy will be calculated for", args.dataset)
 
@@ -351,7 +351,7 @@ def main():
     print(f"additional opts: {args.opts}")
     print(f"best val mae: {best_val_mae:.3f}")
     if get_ca:
-        print("CA3: {:.2f} CA5: {:.2f} CA7: {:2f}".format(global_ca[3] * 100, global_ca[5]*100, global_ca[7]*100))
+        print("CA3: {:.2f} CA5: {:.2f} CA7: {:.2f}".format(global_ca[3] * 100, global_ca[5]*100, global_ca[7]*100))
     print("best mae saved model:", best_checkpoint)
     
     for ind, g in enumerate(group_count):

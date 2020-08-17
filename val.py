@@ -120,7 +120,7 @@ class AverageMeter(object):
         self.count += n
         self.avg = self.sum / self.count
 
-def validate(validate_loader, model, criterion, epoch, device, group_count, gender_count="False"):
+def validate(validate_loader, model, criterion, epoch, device, group_count, gender_count="False", get_ca = False):
     model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
@@ -130,6 +130,9 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
     gender_mae = torch.zeros(2)
     to_count = False
     error = []
+    ca = None
+    if get_ca:
+        ca = {3:0, 5:0, 7:0}
     if sum(group_count) == 0:
         to_count = True
     with torch.no_grad():
@@ -162,6 +165,13 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
                         gender_mae[gender[ind]] += abs(y[ind] - age)
                     if abs(y[ind] - age) > 3:
                         error.append([path[ind], y[ind].item(), age.item(), abs(y[ind] - age).item()])
+                    if ca is not None:
+                        if abs(y[ind].item() - age) < 3:
+                            ca[3] += 1
+                        if abs(y[ind].item() - age) < 5:
+                            ca[5] += 1
+                        if abs(y[ind].item() - age) < 7:
+                            ca[7] += 1
 
                 gt.append(y.cpu().numpy())
 
@@ -188,15 +198,18 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
     ave_preds = (preds * ages).sum(axis=-1)
     diff = ave_preds - gt
     mae = np.abs(diff).mean()
+    if ca is not None:
+        for i in ca.keys():
+            ca[i] = ca[i] / torch.sum(group_count)
     df = pd.DataFrame(error, columns = ["photo", "age", "pred", "error"])
 
     if gender_count != "False":
-        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae), df
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae, ca), df
     else:
-        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae,), df
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, ca), df
 
 
-def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, gender_count="False"):
+def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, gender_count="False", get_ca = False):
     model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
@@ -207,6 +220,9 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
     gender_mae = torch.zeros(2)
     to_count = False
     error = []
+    ca = None
+    if get_ca:
+        ca = {3:0, 5:0, 7:0}
     if sum(group_count) == 0:
         to_count = True
     with torch.no_grad():
@@ -245,6 +261,13 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                         gender_mae[gender[ind]] += abs(y[ind] - age) 
                     if abs(y[ind] - age) > 3:
                         error.append([path[ind], y[ind].item(), age.item(), abs(y[ind] - age).item()])
+                    if ca is not None:
+                        if abs(y[ind].item() - age) < 3:
+                            ca[3] += 1
+                        if abs(y[ind].item() - age) < 5:
+                            ca[5] += 1
+                        if abs(y[ind].item() - age) < 7:
+                            ca[7] += 1
 
                 # valid for validation, not used for test
                 if criterion is not None:
@@ -269,13 +292,17 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
     preds = np.concatenate(preds, axis=0)
     gt = np.concatenate(gt, axis=0)
     mae = np.abs(preds - gt).mean()
+    
+    if ca is not None:
+        for i in ca.keys():
+            ca[i] = ca[i] / torch.sum(group_count)
 
     df = pd.DataFrame(error, columns = ["photo", "age", "pred", "error"])
 
     if gender_count != "False":
-        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae), df
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, gender_mae, ca), df
     else:
-        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae,), df
+        return loss_monitor.avg, accuracy_monitor.avg, mae, (group_mae, ca), df
 
 
 def main():
@@ -292,7 +319,7 @@ def main():
     group = {0:"  0-5", 1:" 6-10", 2:"11-20", 3:"21-30", 4:"31-40", 5:"41-60", 6:"  61-"}
     group_count = torch.zeros(7)
     gender_count = torch.zeros(2)
-
+    get_ca = True
     # create model
     print("=> creating model '{}'".format(cfg.MODEL.ARCH))
     model = get_model(model_name=cfg.MODEL.ARCH)
@@ -361,10 +388,16 @@ def main():
     for ind, interval in enumerate(group.values()):
         print(interval+":", (group_mae[ind]/group_count[ind]).item(),"/", group_count[ind].item())
     
+    ca = maes[1]
+
     if gender:
         gender_mae = maes[1]
+        ca = maes[2]
         for ind, gen in enumerate(["  Male", "Female"]):
             print(gen+":", (gender_mae[ind]/gender_count[ind]).item(),"/", gender_count[ind].item())
+
+    if get_ca:
+        print("CA3: {:.2f} CA5: {:.2f} CA7: {:.2f}".format(ca[3] * 100, ca[5]*100, ca[7]*100))
     csv_path = resume_path.split("/")[-1]
     csv_path = csv_path[:-4]
     df.to_csv("csv/"+csv_path+".csv", index=False)
