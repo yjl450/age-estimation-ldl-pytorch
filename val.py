@@ -359,12 +359,12 @@ def main():
     group_mae = maes[0]
     print("Group MAE:")
     for ind, interval in enumerate(group.values()):
-        print(interval+":", (group_mae[ind]/group_count[ind]).item())
+        print(interval+":", (group_mae[ind]/group_count[ind]).item(),"/", group_count[ind].item())
     
     if gender:
         gender_mae = maes[1]
         for ind, gen in enumerate(["  Male", "Female"]):
-            print(gen+":", (gender_mae[ind]/gender_count[ind]).item())
+            print(gen+":", (gender_mae[ind]/gender_count[ind]).item(),"/", gender_count[ind].item())
     csv_path = resume_path.split("/")[-1]
     csv_path = csv_path[:-4]
     df.to_csv("csv/"+csv_path+".csv", index=False)
