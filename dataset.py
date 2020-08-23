@@ -39,6 +39,7 @@ class FaceDataset(Dataset):
         self.img_size = img_size
         self.label = label
         self.gen = gender
+        self.race_dic = {"A":0, "B": 1, "H": 2, "O": 4, "W": 4}
         self.augment = augment
         self.expand = expand
         self.age_stddev = age_stddev
@@ -75,6 +76,7 @@ class FaceDataset(Dataset):
         # self.std = []
         self.rotate = []
         self.boxes = []
+        self.race = []
         df = pd.read_csv(str(csv_path))
         if self.gen:
             self.gender = []
@@ -91,6 +93,8 @@ class FaceDataset(Dataset):
                     self.gender.append(0)
                 if row["gender"] == "F" or row["gender"] == "female":
                     self.gender.append(1)
+                if row["race"] is not None:
+                    self.race.append(self.race_dic[row["race"]])
             self.boxes.append(
                 [row["box1"], row["box2"], row["box3"], row["box4"]])
             # self.std.append(row["apparent_age_std"])
@@ -121,16 +125,23 @@ class FaceDataset(Dataset):
             augmented = self.transform(image = image_np)
         img = augmented["image"]
 
+        if self.gen:
+            gen_vec = torch.zeros(2)
+            gen_vec[self.gender[idx]] = 1
+            if len(self.race) > 0:
+                race_vec = torch.zeros(3)
+                race_vec[self.race[idx]] = 1
+
         if self.label:
             label = [normal_sampling(int(age), i) for i in range(101)]
             label = [i if i > 1e-15 else 1e-15 for i in label]
             label = torch.Tensor(label)
             if self.gen:
-                return img, int(age), label, self.gender[idx]
+                return img, int(age), label, gen_vec, race_vec
             return img, int(age), label
         else:
             if self.gen:
-                return img, int(age), self.gender[idx]
+                return img, int(age), gen_vec, race_vec
             return img, int(age)
 
 
