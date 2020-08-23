@@ -140,22 +140,21 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             # compute output
             outputs, gen, race = model(x)
             outputs = F.softmax(outputs, dim = 1)
-            gen = F.softmax(gen, dim = 1)
-            race = F.softmax(race, 1)
             ages = torch.sum(outputs*rank, dim=1)
 
             # calc loss
             # loss = criterion(outputs, y)
             loss1 = L.kl_loss(outputs, lbl)
             loss2 = L.L1_loss(ages, y)
-            print(gen.shape)
-            loss3 = criterion(torch.argmax(gen, 1), g)
-            loss4 = criterion(torch.argmax(race, 1), r)
+            loss3 = criterion(gen, g)
+            loss4 = criterion(race, r)
             loss = loss1 + loss2 + loss3 + loss4
             cur_loss = loss.item()
 
             # calc accuracy
             correct_num = (abs(ages - y) < 1).sum().item()
+            gen = F.softmax(gen, dim = 1)
+            race = F.softmax(race, 1)
             correct_gender += torch.sum(torch.argmax(gen, 1) == torch.argmax(g, 1)).item()
             correct_race += torch.sum(torch.argmax(race, 1) == torch.argmax(r, 1)).item()
 
