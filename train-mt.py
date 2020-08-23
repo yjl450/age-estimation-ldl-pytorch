@@ -295,6 +295,7 @@ def main():
     # create model
     print("=> creating model '{}'".format(cfg.MODEL.ARCH))
     model = get_model(model_name=cfg.MODEL.ARCH)
+    model = multitask(model)
 
     if cfg.TRAIN.OPT == "sgd":
         optimizer = torch.optim.SGD(model.parameters(), lr=cfg.TRAIN.LR,
