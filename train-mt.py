@@ -136,6 +136,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             lbl = lbl.to(device)
             g.to(device)
             r.to(device)
+            print(x.device, y.device, lbl.device, g.device, r.device)
 
             # compute output
             outputs, gen, race = model(x)
@@ -146,6 +147,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             # loss = criterion(outputs, y)
             loss1 = L.kl_loss(outputs, lbl)
             loss2 = L.L1_loss(ages, y)
+            print(gen.device, race.device)
             loss3 = criterion(gen, g)
             loss4 = criterion(race, r)
             loss = loss1 + loss2 + loss3 + loss4
