@@ -148,6 +148,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             # loss = criterion(outputs, y)
             loss1 = L.kl_loss(outputs, lbl)
             loss2 = L.L1_loss(ages, y)
+            print(gen.shape)
             loss3 = criterion(torch.argmax(gen, 1), g)
             loss4 = criterion(torch.argmax(race, 1), r)
             loss = loss1 + loss2 + loss3 + loss4
