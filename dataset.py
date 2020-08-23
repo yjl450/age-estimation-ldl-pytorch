@@ -129,7 +129,7 @@ class FaceDataset(Dataset):
             gen_vec = torch.zeros(2)
             gen_vec[self.gender[idx]] = 1
             if len(self.race) > 0:
-                race_vec = torch.zeros(3)
+                race_vec = torch.zeros(5)
                 race_vec[self.race[idx]] = 1
 
         if self.label:
