@@ -126,22 +126,22 @@ class FaceDataset(Dataset):
         img = augmented["image"]
 
         if self.gen:
-            gen_vec = torch.zeros(2, dtype=torch.long)
-            gen_vec[self.gender[idx]] = 1
-            if len(self.race) > 0:
-                race_vec = torch.zeros(5)
-                race_vec[self.race[idx]] = 1
+            # gen_vec = torch.zeros(2, dtype=torch.long)
+            # gen_vec[self.gender[idx]] = 1
+            # if len(self.race) > 0:
+            #     race_vec = torch.zeros(5)
+            #     race_vec[self.race[idx]] = 1
 
         if self.label:
             label = [normal_sampling(int(age), i) for i in range(101)]
             label = [i if i > 1e-15 else 1e-15 for i in label]
             label = torch.Tensor(label)
             if self.gen:
-                return img, int(age), label, gen_vec, race_vec
+                return img, int(age), label, self.gender[idx], self.race[idx]
             return img, int(age), label
         else:
             if self.gen:
-                return img, int(age), gen_vec, race_vec
+                return img, int(age), self.gender[idx], self.race[idx]
             return img, int(age)
 
 
