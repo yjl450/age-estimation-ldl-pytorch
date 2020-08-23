@@ -5,3 +5,4 @@ tempCodeRunnerFile.py
 *.out
 *.png
 .ipynb_checkpoints/*
+.vs/*
