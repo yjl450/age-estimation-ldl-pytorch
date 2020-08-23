@@ -155,8 +155,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             correct_num = (abs(ages - y) < 1).sum().item()
             gen = F.softmax(gen, dim = 1)
             race = F.softmax(race, 1)
-            correct_gender += torch.sum(torch.argmax(gen, 1) == torch.argmax(g, 1)).item()
-            correct_race += torch.sum(torch.argmax(race, 1) == torch.argmax(r, 1)).item()
+            correct_gender += torch.sum(torch.argmax(gen, 1) == g).item()
+            correct_race += torch.sum(torch.argmax(race, 1) == r).item()
 
             # measure accuracy and record loss
             sample_num = x.size(0)
@@ -244,9 +244,9 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, get_
                     correct_num = (abs(ages - y) < 1).sum().item()
                     
                     gen = F.softmax(gen, dim = 1)
-                    correct_gender += torch.sum(torch.argmax(gen, 1) == torch.argmax(g, 1)).item()
+                    correct_gender += torch.sum(torch.argmax(gen, 1) == g).item()
                     race = F.softmax(race, 1)
-                    correct_race += torch.sum(torch.argmax(race, 1) == torch.argmax(r, 1)).item()
+                    correct_race += torch.sum(torch.argmax(race, 1) == r).item()
 
                     # measure accuracy and record loss
                     sample_num = x.size(0)
