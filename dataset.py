@@ -126,7 +126,7 @@ class FaceDataset(Dataset):
         img = augmented["image"]
 
         if self.gen:
-            gen_vec = torch.zeros(2)
+            gen_vec = torch.zeros(2, dtype=torch.long)
             gen_vec[self.gender[idx]] = 1
             if len(self.race) > 0:
                 race_vec = torch.zeros(5)
