@@ -22,6 +22,7 @@ from defaults import _C as cfg
 from datetime import datetime
 from matplotlib import pyplot as plt
 import loss as L
+from types import MethodType
 
 def get_group(age):
     if 0 <= age <= 5:
