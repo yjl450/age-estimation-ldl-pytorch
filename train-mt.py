@@ -134,9 +134,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             x = x.to(device)
             y = y.to(device)
             lbl = lbl.to(device)
-            g.to(device)
-            r.to(device)
-            print(x.device, y.device, lbl.device, g.device, r.device)
+            g = g.to(device)
+            r = r.to(device)
 
             # compute output
             outputs, gen, race = model(x)
@@ -147,7 +146,6 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
             # loss = criterion(outputs, y)
             loss1 = L.kl_loss(outputs, lbl)
             loss2 = L.L1_loss(ages, y)
-            print(gen.device, race.device)
             loss3 = criterion(gen, g)
             loss4 = criterion(race, r)
             loss = loss1 + loss2 + loss3 + loss4
@@ -205,8 +203,8 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, get_
                 x = x.to(device)
                 y = y.to(device)
                 lbl = lbl.to(device)
-                g.to(device)
-                r.to(device)
+                g = g.to(device)
+                r = r.to(device)
 
                 # compute output
                 outputs, gen, race = model(x)
