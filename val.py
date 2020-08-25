@@ -56,14 +56,14 @@ class FaceVal(FaceDataset):
             img = img.crop(expand_bbox(img.size, self.boxes[idx], ratio= self.expand))
         else:
             img = img.crop(self.boxes[idx])
-        # img = self.transform(img)
+        img = self.transform(img)
 
-        image_np = np.array(img)
-        if self.augment:
-            augmented = self.transform_aug(image = image_np)
-        else:
-            augmented = self.transform(image = image_np)
-        img = augmented["image"]
+        # image_np = np.array(img)
+        # if self.augment:
+        #     augmented = self.transform_aug(image = image_np)
+        # else:
+        #     augmented = self.transform(image = image_np)
+        # img = augmented["image"]
         # if torch.isnan(img).any() or torch.isinf(img).any():
         #     print(img_path[idx])
         if self.label:
