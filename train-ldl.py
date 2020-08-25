@@ -321,7 +321,7 @@ def main():
         all_val_accu.append(float(val_mae))
 
         # checkpoint
-        if (val_mae < best_val_mae) or ((get_ca and value_ca) and (new_ca[3] > global_ca[3] or new_ca[5] > global_ca[5] or new_ca[7] > global_ca[7])):
+        if (val_mae < best_val_mae) or ((get_ca and value_ca) and (new_ca[3] > global_ca[3])):
             print(
                 f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
             model_state_dict = model.module.state_dict(
