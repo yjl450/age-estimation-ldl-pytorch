@@ -43,20 +43,20 @@ class FaceDataset(Dataset):
         self.augment = augment
         self.expand = expand
         self.age_stddev = age_stddev
-        # self.transform = transforms.Compose([
-        #     transforms.Resize((img_size, img_size)),
-        #     transforms.ToTensor(),
-        #     transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
-        #                          0.229, 0.224, 0.225])
-        # ])
-        self.transform = A.Compose([
-            A.Resize(img_size, img_size),
-            A.Normalize(
-                mean=[0.485, 0.456, 0.406],
-                std=[0.229, 0.224, 0.225],
-            ),
-            ToTensorV2()
+        self.transform = transforms.Compose([
+            transforms.Resize((img_size, img_size)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                                 0.229, 0.224, 0.225])
         ])
+        # self.transform = A.Compose([
+        #     A.Resize(img_size, img_size),
+        #     A.Normalize(
+        #         mean=[0.485, 0.456, 0.406],
+        #         std=[0.229, 0.224, 0.225],
+        #     ),
+        #     ToTensorV2()
+        # ])
         self.transform_aug = A.Compose([
             A.HorizontalFlip(p=0.3),
             A.HueSaturationValue(p=0.3),
