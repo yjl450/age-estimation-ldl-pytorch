@@ -210,6 +210,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
 
 
 def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, gender_count="False", get_ca = False):
+    print(gender_count)
     model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
