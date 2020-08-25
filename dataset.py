@@ -121,9 +121,10 @@ class FaceDataset(Dataset):
         image_np = np.array(img)
         if self.augment:
             augmented = self.transform_aug(image = image_np)
+            img = augmented["image"]
         else:
-            augmented = self.transform(image = image_np)
-        img = augmented["image"]
+            img = self.transform(img)
+        
 
         # if self.gen:
             # gen_vec = torch.zeros(2, dtype=torch.long)
