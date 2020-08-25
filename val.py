@@ -158,7 +158,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
                 outputs = model(x)
                 pred_ages = F.softmax(outputs, dim=-1).cpu().numpy()
                 preds.append(pred_ages)
-
+                y=y.cpu()
                 for ind, age in enumerate(pred_ages):
                     group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
                     if gender_count != "False":
@@ -173,7 +173,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
                         if abs(y[ind].item() - age) < 7:
                             ca[7] += 1
 
-                gt.append(y.cpu().numpy())
+                gt.append(y.numpy())
 
                 # valid for validation, not used for test
                 if criterion is not None:
