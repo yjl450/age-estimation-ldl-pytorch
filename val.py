@@ -369,14 +369,14 @@ def main():
     # validate
     if gender:
         if args.ldl:
-            val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, gender_count)
+            val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, gender_count, get_ca)
         else:
-            val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count, gender_count)
+            val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count, gender_count, get_ca)
     else:
         if args.ldl:
-            val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count)
+            val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, get_ca)
         else:
-            val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count)
+            val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count, get_ca)
 
 
     print("=> Validation finished")
