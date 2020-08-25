@@ -160,7 +160,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
                 preds.append(pred_ages)
                 y=y.cpu()
                 for ind, age in enumerate(pred_ages):
-                    group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
+                    # group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
                     if gender_count != "False":
                         gender_mae[gender[ind]] += abs(y[ind] - age)
                     if abs(y[ind] - age) > 3:
