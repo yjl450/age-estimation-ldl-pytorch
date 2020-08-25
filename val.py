@@ -210,7 +210,6 @@ def validate(validate_loader, model, criterion, epoch, device, group_count, gend
 
 
 def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, gender_count="False", get_ca = False):
-    print(gender_count)
     model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
@@ -319,7 +318,6 @@ def main():
 
     group = {0:"  0-5", 1:" 6-10", 2:"11-20", 3:"21-30", 4:"31-40", 5:"41-60", 6:"  61-"}
     group_count = torch.zeros(7)
-    gender_count = torch.zeros(2)
     get_ca = True
     # create model
     print("=> creating model '{}'".format(cfg.MODEL.ARCH))
@@ -359,8 +357,10 @@ def main():
     criterion = nn.CrossEntropyLoss().to(device)
 
     gender = False
+    gender_count = "False"
     if args.dataset == "Morph" or args.dataset == "imdb_wiki":
         gender = True
+        gender_count = torch.zeros(2)
 
     val_dataset = FaceVal(args.data_dir, "valid", args.dataset,
                               img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, gender=gender, expand = args.expand)
@@ -368,16 +368,10 @@ def main():
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
     print(len(val_dataset))
     # validate
-    if gender:
-        if args.ldl:
-            val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, gender_count, get_ca)
-        else:
-            val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count, gender_count, get_ca)
+    if args.ldl:
+        val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, gender_count, get_ca)
     else:
-        if args.ldl:
-            val_loss, val_acc, val_mae, maes, df= validate_ldl(val_loader, model, criterion, start_epoch, device, group_count, get_ca)
-        else:
-            val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count, get_ca)
+        val_loss, val_acc, val_mae, maes, df= validate(val_loader, model, criterion, start_epoch, device, group_count, gender_count, get_ca)
 
 
     print("=> Validation finished")
