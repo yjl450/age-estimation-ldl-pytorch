@@ -57,53 +57,84 @@ python demo.py --img_dir [PATH/TO/IMAGE_DIRECTORY]
 ```
 
 Further using `--output_dir` argument,
-resulting images will be saved in that directory (no resulting image window is displayed in this case):
+images with predicted ages will be saved in that directory:
 
 ```bash
 python demo.py --img_dir [PATH/TO/IMAGE_DIRECTORY] --output_dir [PATH/TO/OUTPUT_DIRECTORY]
 ```
 By default, a pretrained model on MegaAge and MegaAge-Asian will be downloaded automatically. Otherwise, you can load a pretrained model using `--resume` argument.
 
+Other arguments:
+* `--expand` - a factor by which the cropping area (the face area for estimation) is expanded
+
 ## Train
 
-#### Download Dataset
-
-Download and extract the [APPA-REAL dataset](http://chalearnlap.cvc.uab.es/dataset/26/description/).
-
-> The APPA-REAL database contains 7,591 images with associated real and apparent age labels. The total number of apparent votes is around 250,000. On average we have around 38 votes per each image and this makes the average apparent age very stable (0.3 standard error of the mean).
-
-```bash
-wget http://158.109.8.102/AppaRealAge/appa-real-release.zip
-unzip appa-real-release.zip
-```
-
-#### Train Model
-Train a model using the APPA-REAL dataset.
+### Train Model with Classification
 See `python train.py -h` for detailed options.
 
 ```bash
-python train.py --data_dir [PATH/TO/appa-real-release] --tensorboard tf_log
+python train.py --data_dir [PATH/TO/morph] --dataset morph
 ```
 
-Check training progress:
+### Train Model with Label Distribution Learning (Recommended)
+
 
 ```bash
-tensorboard --logdir=tf_log
+python train-ldl.py --data_dir [PATH/TO/morph] --dataset morph
+```
+It is strongly recommended to use data augmentation (`--aug`). Slight expansion of the face area (`--expand`) may also improve accuracy.
+
+```bash
+python train-ldl.py --data_dir [PATH/TO/morph] --dataset morph --aug --expand 0.2
 ```
 
-<img src="misc/tfboard.png" width="400px">
+### Train Multitasking Model with Label Distribution Learning (Morph Only)
+```bash
+python train-mt.py --data_dir [PATH/TO/morph] --dataset morph --aug --expand 0.2
+```
+Features after two layers of SE-ResNext are fed into one gender predicator and one ethnicity predicator. The results of the two predicators, together with the features from the full network, are fed into the last fully connected layer to form the age distribution prediction.
 
-#### Training Options
+In experiment, this model improves the MAE but requires the dataset to provide gender and ethnicity labels, which is why this model is only tested on Morph dataset.
+
+### Other arguments:
+* `--resume` - the path to a checkpoint
+* `--checkpoint` - the folder to save the model
+* `--multi_gpu` - use multiple gpu to accelerate training
+* `--aug` - apply data augmentation using [albumentations](https://github.com/albumentations-team/albumentations), see [dataset.py](dataset.py) for detail
+* `--expand` - same as [demo.py](demo.py), a factor by which the cropping area (the face area for estimation) is expanded
+
+### Training Options
 You can change training parameters including model architecture using additional arguments like this:
 
 ```bash
-python train.py --data_dir [PATH/TO/appa-real-release] --tensorboard tf_log MODEL.ARCH se_resnet50 TRAIN.OPT sgd TRAIN.LR 0.1
+python train-ldl.py --data_dir [PATH/TO/dataset] MODEL.ARCH se_resnet50 TRAIN.OPT sgd TRAIN.LR 0.1
 ```
 
 All default parameters defined in [defaults.py](defaults.py) can be changed using this style.
 
+## Validation
+Similar to the validation function used in [train.py](train.py). This script returns the results of MAE and CA of a specified saved model, and the MAEs of each age and gender group for detailed analysis. Furthermore, a csv file containing images whose ages are not correctly estimated is generated.
 
-#### Test Trained Model
+```bash
+python val.py --data_dir [PATH/TO/morph] --dataset morph
+```
+### Other arguments
+* `--ldl` - flag that indicates the result of the network is a distribution and the expectation should be calculated
+* `--resume` - path to the saved model that is to be validated
+* `--multi_gpu` - use multiple gpu to accelerate validation
+* `--expand` - same as [train.py](train.py), the number should be the same as the factor used in training the model
+
+
+
+
+
+
+
+
+
+
+<!--
+### Test Trained Model
 Evaluate the trained model using the APPA-REAL test dataset.
 
 ```bash
