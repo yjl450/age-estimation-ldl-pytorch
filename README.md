@@ -38,8 +38,8 @@ In each file, 7 fields are required (order is not important):
 * age - the ground truth age
 * deg - the angle to rotate the image so that the two eyes are on a horizontal line, computed from the facial landmarks
 * box1, box2, box3, box4, (x1, y1) (x2, y2) coordinates to crop the face from the photo
-  
-We use MTCNN<sup>[CITE]</sup> for face detection and alignment. Each image should go through two passes. In the first pass, five points of the facial landmarks are detected and the rotation angle is computed. In the second pass, the rotated image is used to find the bounding box of the face. The rotation angle and the bounding box are saved in the csv files.
+
+Two sample scripts are provided in [proprocessing](preprocessing) folder.
 
 ## Demo
 
