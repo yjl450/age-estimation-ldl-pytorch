@@ -27,7 +27,7 @@ More information and the datasets can be acquired [here](http://mmlab.ie.cuhk.ed
 
 A huge dataset that is commonly used in pretraining due to its relatively low quality of the images included. Its MAE is not usually used as a evaluation metric of the model. More information [here](https://data.vision.ee.ethz.ch/cvl/rrothe/imdb-wiki/).
 
-## Preprocessing
+## Data Preparation & Image Preprocessing
 There should be two csv files generated for each dataset, one for training and one for validation, all of which follow the naming convention:
 ```bash
 [dataset_name]_train_align.csv
@@ -37,7 +37,7 @@ In each file, 7 fields are required (order is not important):
 * photo - the relative path to each image from the dataset folder
 * age - the ground truth age
 * deg - the angle to rotate the image so that the two eyes are on a horizontal line, computed from the facial landmarks
-* box1, box2, box3, box4, (x1, y1) (x2, y2) coordinates to crop the face from the photo
+* box1, box2, box3, box4 - (x1, y1) (x2, y2) coordinates to crop the face from the photo
 
 Two sample scripts are provided in [proprocessing](preprocessing) folder.
 
@@ -92,7 +92,7 @@ python train-ldl.py --data_dir [PATH/TO/morph] --dataset morph --aug --expand 0.
 ```bash
 python train-mt.py --data_dir [PATH/TO/morph] --dataset morph --aug --expand 0.2
 ```
-Features after two layers of SE-ResNext are fed into one gender predicator and one ethnicity predicator. The results of the two predicators, together with the features from the full network, are fed into the last fully connected layer to form the age distribution prediction.
+Features after two layers of SE-ResNext bottleneck are fed into one gender predicator and one ethnicity predicator. The results of the two predicators, together with the features from the full network, are fed into the last fully connected layer to form the age distribution prediction.
 
 In experiment, this model improves the MAE but requires the dataset to provide gender and ethnicity labels, which is why this model is only tested on Morph dataset.
 
@@ -124,11 +124,21 @@ python val.py --data_dir [PATH/TO/morph] --dataset morph
 * `--multi_gpu` - use multiple gpu to accelerate validation
 * `--expand` - same as [train.py](train.py), the number should be the same as the factor used in training the model
 
+## Result
+To be updated
 
+## References
+[1] This project is heavily based on https://github.com/yu4u/age-estimation-pytorch
 
+[2] The implementation of DLDL-v2 (ThinAgeNet, TinyAgeNet, Normal Sampling, KL Divergence + L1 Loss) is adopted from https://github.com/PuNeal/DLDL-v2-PyTorch
 
+[3] Bin-Bin Gao, Hong-Yu Zhou, Jianxin Wu, and Xin Geng. 2018. Age Estimation Using Expectation of Label Distribution Learning. In <i>Proc. The 27th International Joint Conference on Artificial Intelligence (IJCAI 2018)</i>.
 
+[4] K. Ricanek and T. Tesafaye, "MORPH: a longitudinal image database of normal adult age-progression," 7th International Conference on Automatic Face and Gesture Recognition (FGR06), Southampton, 2006, pp. 341-345, doi: 10.1109/FGR.2006.78.
 
+[5] Yunxuan Zhang, Li Liu, Cheng Li, and Chen Change Loy. Quantifying Facial Age by Posterior of Age Comparisons, In British Machine Vision Conference (BMVC), 2017.
+
+[6] Rasmus Rothe, Radu Timofte, and Luc Van Gool. 2018. Deep expectation of real and apparent age from a single image without facial landmarks. <i>International Journal of Computer Vision</i>, Vol. 126, No. 2-4, 144–157.
 
 
 
