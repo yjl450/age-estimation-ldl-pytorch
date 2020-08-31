@@ -27,8 +27,6 @@ def get_args():
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--resume", type=str, required = True,
                         help="Model weight to be tested")
-    parser.add_argument("--margin", type=float, default=0,
-                        help="Margin around detected face for age-gender estimation")
     parser.add_argument("--img_dir", type=str, default=None,
                         help="Target image directory; if set, images in image_dir are used instead of webcam")
     parser.add_argument("--output_dir", type=str, default=None,
@@ -136,7 +134,6 @@ def main():
         cudnn.benchmark = True
 
     model.eval()
-    margin = args.margin
     img_dir = args.img_dir
     # detector = dlib.get_frontal_face_detector()
     mtcnn = MTCNN(device=device, post_process=False, keep_all=False)
@@ -167,19 +164,6 @@ def main():
 
             if detected is not None and len(detected) > 0:
                 detected = detected.astype(int)
-                # faces = torch.zeros((len(detected), 3, img_size, img_size))
-                # for i, d in enumerate(detected):
-                #     # x1, y1, x2, y2, w, h = d.left(), d.top(), d.right() + 1, d.bottom() + 1, d.width(), d.height()
-                #     x1, y1, x2, y2, w, h = d[0], d[1], d[2], d[3], d[2]-d[0], d[3]-d[1]
-                #     xw1 = max(int(x1 - margin * w), 0)
-                #     yw1 = max(int(y1 - margin * h), 0)
-                #     xw2 = min(int(x2 + margin * w), img_w - 1)
-                #     yw2 = min(int(y2 + margin * h), img_h - 1)
-                #     cv2.rectangle(img, (x1, y1), (x2, y2), (255, 255, 255), 2)
-                #     cv2.rectangle(img, (xw1, yw1), (xw2, yw2), (255, 0, 0), 2)
-                #     faces[i] = torch.Tensor(cv2.resize(img[yw1:yw2 + 1, xw1:xw2 + 1], (img_size, img_size))).permute(2, 0, 1)
-                # print(faces.shape)
-
                 if args.expand > 0:
                     box = expand_bbox(image.size, detected[0], ratio= args.expand)
                 else:
