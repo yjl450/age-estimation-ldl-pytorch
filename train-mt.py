@@ -59,7 +59,7 @@ def get_args():
                         default=None, help="Tensorboard log directory")
     parser.add_argument('--multi_gpu', action="store_true",
                         help="Use multi GPUs (data parallel)")
-    parser.add_argument('--expand', type=float, default=0, help="expand the crop area [0, 1)")
+    parser.add_argument('--expand', type=float, default=0, help="expand the crop area by a factor, typically between 0 and 1")
     parser.add_argument('--aug', action="store_true",
                         help="Apply data augmentation")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
@@ -329,8 +329,8 @@ def main():
     if device == "cuda":
         cudnn.benchmark = True
     
-    get_ca = True if "megaage" in args.dataset else True
-    value_ca = True if "megaage" in args.dataset else False
+    get_ca = True if "megaage" in args.dataset.lower() else True
+    value_ca = True if "megaage" in args.dataset.lower() else False
     if get_ca:
         print("Cummulative Accuracy will be calculated for", args.dataset)
 

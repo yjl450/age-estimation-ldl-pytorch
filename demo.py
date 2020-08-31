@@ -35,7 +35,7 @@ def get_args():
                         help="Output directory to which resulting images will be stored if set")
     parser.add_argument('--ldl', action="store_true",
                         help="Use KLDivLoss + L1 Loss")
-    parser.add_argument('--expand', type=float, default=0, help="expand the crop area [0, 1)")
+    parser.add_argument('--expand', type=float, default=0, help="expand the crop area by a factor, typically between 0 and 1")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
     args = parser.parse_args()
