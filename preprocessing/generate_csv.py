@@ -2,8 +2,8 @@ import csv
 
 path = "list/"
 
-train_align = open("MegaAgeAsian_train_align.csv", "w", newline='')
-valid_align = open("MegaAgeAsian_valid_align.csv", "w", newline='')
+train_align = open("megaage_asian_train_align.csv", "w", newline='')
+valid_align = open("megaage_asian_valid_align.csv", "w", newline='')
 header = ["photo", "age", "deg", "box1", "box2", "box3", "box4"]
 writer1 = csv.writer(train_align)
 writer2 = csv.writer(valid_align)

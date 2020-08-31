@@ -27,10 +27,10 @@ def angel(t1, t2):
 path = ""
 mode = ["train", "test"]
 for i in mode:
-    f = open(path + "MegaAgeAsian_{}_align.csv".format(i), "w", newline='')
+    f = open(path + "megaage_asian_{}_align.csv".format(i), "w", newline='')
     writer = csv.writer(f)
 
-    with open(path + 'MegaAgeAsian_{}.csv'.format(i),'r') as csvfile:
+    with open(path + 'megaage_asian_{}.csv'.format(i),'r') as csvfile:
         header = next(csvfile).split(",")
         header[-1] = "box4"
         writer.writerow(header)
