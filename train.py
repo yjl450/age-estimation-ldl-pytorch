@@ -134,7 +134,7 @@ def validate(validate_loader, model, criterion, epoch, device, group_count):
                 preds.append(pred_ages)
 
                 for ind, age in enumerate(pred_ages): 
-                    if (int(y[ind].item()) == age):
+                    if (int(y[ind].()) == age):
                         correct_count[get_group(y[ind].item())] += 1
                         correct_group[get_group(y[ind].item())] += 1
                     if get_group(y[ind].item()) == get_group(age):
