@@ -227,7 +227,7 @@ def validate(validate_loader, model, criterion, epoch, device, val_count, get_ca
                     accuracy_monitor.update(correct_num, sample_num)
                     _tqdm.set_postfix(OrderedDict(stage="val", epoch=epoch, loss=loss_monitor.avg),
                                       acc=accuracy_monitor.avg, correct=correct_num, sample_num=sample_num)
-
+ 
     preds = np.concatenate(preds, axis=0)
     gt = np.concatenate(gt, axis=0)
     mae = np.abs(preds - gt).mean()

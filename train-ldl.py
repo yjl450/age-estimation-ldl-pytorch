@@ -142,7 +142,7 @@ def validate(validate_loader, model, criterion, epoch, device, val_count, get_ca
                         if abs(y[ind].item() - age) < 7:
                             ca[7] += 1
                         
-
+                        
                 # valid for validation, not used for test
                 if criterion is not None:
                     # calc loss
