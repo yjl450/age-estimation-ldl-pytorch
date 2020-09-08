@@ -231,8 +231,8 @@ def validate(validate_loader, model, criterion, epoch, device, val_count, get_ca
     preds = np.concatenate(preds, axis=0)
     gt = np.concatenate(gt, axis=0)
     mae = np.abs(preds - gt).mean()
-    print("Gender accu:", correct_gender/total)
-    print("Race accu:", correct_race/total)
+    print("Gender accu:", correct_gender/val_count)
+    print("Race accu:", correct_race/val_count)
     if ca is not None:
         for i in ca.keys():
             ca[i] = ca[i] / val_count
