@@ -45,6 +45,7 @@ def get_args():
     parser.add_argument('--expand', type=float, default=0, help="expand the crop area by a factor, typically between 0 and 1")
     parser.add_argument('--aug', action="store_true",
                         help="Apply data augmentation")
+    parser.add_argument('--job', type=str)
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line, e.g. MODEL.ARCH vgg16_bn")
     args = parser.parse_args()
@@ -115,7 +116,6 @@ def validate(validate_loader, model, criterion, epoch, device, val_count, get_ca
     preds = [] 
     gt = []
     rank = torch.Tensor([i for i in range(101)]).to(device)
-    to_count = False
     ca = None
     if get_ca:
         ca = {3:0, 5:0, 7:0}
@@ -171,7 +171,7 @@ def validate(validate_loader, model, criterion, epoch, device, val_count, get_ca
         for i in ca.keys():
             ca[i] = ca[i] / val_count
         print("\n")
-        print("CA3: {:.2f} CA5: {:.2f} CA7: {:2f}".format(ca[3] * 100, ca[5]*100, ca[7]*100))
+        print("CA3: {:.2f} CA5: {:.2f} CA7: {:.2f}".format(ca[3] * 100, ca[5]*100, ca[7]*100))
     
     return loss_monitor.avg, accuracy_monitor.avg, mae, ca
 
@@ -320,26 +320,26 @@ def main():
 
     plt.ylabel("Train Loss")
     plt.plot(x, all_train_loss)
-    plt.savefig("savefig/{}_{}_{}_train_loss.png".format(args.dataset,
-                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_train_loss_{}.png".format(args.dataset,
+                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
     plt.clf()
 
     plt.ylabel("Train Accuracy")
     plt.plot(x, all_train_accu)
-    plt.savefig("savefig/{}_{}_{}_train_accu.png".format(args.dataset,
-                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_train_accu_{}.png".format(args.dataset,
+                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
     plt.clf()
 
     plt.ylabel("Validation Loss")
     plt.plot(x, all_val_loss)
-    plt.savefig("savefig/{}_{}_{}_val_loss.png".format(args.dataset,
-                                                       cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_val_loss_{}.png".format(args.dataset,
+                                                       cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
     plt.clf()
 
     plt.ylabel("Validation Accuracy")
     plt.plot(x, all_val_accu)
-    plt.savefig("savefig/{}_{}_{}_val_mae.png".format(args.dataset,
-                                                      cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_val_mae_{}.png".format(args.dataset,
+                                                      cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
 
 
 if __name__ == '__main__':
