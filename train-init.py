@@ -45,6 +45,8 @@ def get_args():
     parser.add_argument('--expand', type=float, default=0, help="expand the crop area by a factor, typically between 0 and 1")
     parser.add_argument('--aug', action="store_true",
                         help="Apply data augmentation")
+    parser.add_argument('--job', type=str)
+    parser.add_argument("--imagenet", type=str, default=None)
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line, e.g. MODEL.ARCH vgg16_bn")
     args = parser.parse_args()
@@ -189,7 +191,7 @@ def main():
 
     # create model
     print("=> creating model '{}'".format(cfg.MODEL.ARCH))
-    model = get_model(model_name=cfg.MODEL.ARCH, pretrained=None)
+    model = get_model(model_name=cfg.MODEL.ARCH, pretrained=args.imagenet)
 
     if cfg.TRAIN.OPT == "sgd":
         optimizer = torch.optim.SGD(model.parameters(), lr=cfg.TRAIN.LR,
@@ -320,26 +322,26 @@ def main():
 
     plt.ylabel("Train Loss")
     plt.plot(x, all_train_loss)
-    plt.savefig("savefig/{}_{}_{}_train_loss_randinit.png".format(args.dataset,
-                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_train_loss_{}.png".format(args.dataset,
+                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
     plt.clf()
 
     plt.ylabel("Train Accuracy")
     plt.plot(x, all_train_accu)
-    plt.savefig("savefig/{}_{}_{}_train_accu_randinit.png".format(args.dataset,
-                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_train_accu_{}.png".format(args.dataset,
+                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
     plt.clf()
 
     plt.ylabel("Validation Loss")
     plt.plot(x, all_val_loss)
-    plt.savefig("savefig/{}_{}_{}_val_loss_randinit.png".format(args.dataset,
-                                                       cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_val_loss_{}.png".format(args.dataset,
+                                                       cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
     plt.clf()
 
     plt.ylabel("Validation Accuracy")
     plt.plot(x, all_val_accu)
-    plt.savefig("savefig/{}_{}_{}_val_mae_randinit.png".format(args.dataset,
-                                                      cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
+    plt.savefig("savefig/{}_{}_{}_val_mae_{}.png".format(args.dataset,
+                                                      cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
 
 
 if __name__ == '__main__':
