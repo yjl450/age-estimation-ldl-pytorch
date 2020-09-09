@@ -45,7 +45,6 @@ def get_args():
     parser.add_argument('--expand', type=float, default=0, help="expand the crop area by a factor, typically between 0 and 1")
     parser.add_argument('--aug', action="store_true",
                         help="Apply data augmentation")
-    parser.add_argument('--job', type=str)
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line, e.g. MODEL.ARCH vgg16_bn")
     args = parser.parse_args()

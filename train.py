@@ -35,7 +35,9 @@ def get_args():
     parser.add_argument("--checkpoint", type=str, default="checkpoint", help="Checkpoint directory")
     parser.add_argument("--tensorboard", type=str, default=None, help="Tensorboard log directory")
     parser.add_argument('--multi_gpu', action="store_true", help="Use multi GPUs (data parallel)")
-    parser.add_argument('--job', type=str)
+    parser.add_argument('--expand', type=float, default=0, help="expand the crop area by a factor, typically between 0 and 1")
+    parser.add_argument('--aug', action="store_true",
+                        help="Apply data augmentation")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
                         help="Modify config options using the command-line")
     args = parser.parse_args()
@@ -210,12 +212,12 @@ def main():
         print("Cummulative Accuracy will be compared to update saved model")
 
     criterion = nn.CrossEntropyLoss().to(device)
-    train_dataset = FaceDataset(args.data_dir, "train", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=True,
-                                age_stddev=cfg.TRAIN.AGE_STDDEV)
+    train_dataset = FaceDataset(args.data_dir, "train", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=args.aug,
+                                age_stddev=cfg.TRAIN.AGE_STDDEV, expand= args.expand)
     train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
                               num_workers=cfg.TRAIN.WORKERS, drop_last=False)
 
-    val_dataset = FaceDataset(args.data_dir, "valid", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=False)
+    val_dataset = FaceDataset(args.data_dir, "valid", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=False, expand= args.expand)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
     val_count = len(val_dataset)
