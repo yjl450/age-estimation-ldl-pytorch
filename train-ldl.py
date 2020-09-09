@@ -319,26 +319,26 @@ def main():
 
     plt.ylabel("Train Loss")
     plt.plot(x, all_train_loss)
-    plt.savefig("savefig/{}_{}_{}_train_loss_{}.png".format(args.dataset,
-                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
+    plt.savefig("savefig/{}_{}_{}_train_loss.png".format(args.dataset,
+                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Train Accuracy")
     plt.plot(x, all_train_accu)
-    plt.savefig("savefig/{}_{}_{}_train_accu_{}.png".format(args.dataset,
-                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
+    plt.savefig("savefig/{}_{}_{}_train_accu.png".format(args.dataset,
+                                                         cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Validation Loss")
     plt.plot(x, all_val_loss)
-    plt.savefig("savefig/{}_{}_{}_val_loss_{}.png".format(args.dataset,
-                                                       cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
+    plt.savefig("savefig/{}_{}_{}_val_loss.png".format(args.dataset,
+                                                       cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
     plt.clf()
 
     plt.ylabel("Validation Accuracy")
     plt.plot(x, all_val_accu)
-    plt.savefig("savefig/{}_{}_{}_val_mae_{}.png".format(args.dataset,
-                                                      cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d"), args.job))
+    plt.savefig("savefig/{}_{}_{}_val_mae.png".format(args.dataset,
+                                                      cfg.MODEL.ARCH, datetime.now().strftime("%Y%m%d")))
 
 
 if __name__ == '__main__':
