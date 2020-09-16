@@ -1,5 +1,4 @@
 import argparse
-import better_exceptions
 from pathlib import Path
 import numpy as np
 import pandas as pd
@@ -57,6 +56,8 @@ class FaceDataset(Dataset):
         #     ),
         #     ToTensorV2()
         # ])
+
+        # Warning: Albumentaions may not be very stable and could possibly lead to nan
         self.transform_aug = A.Compose([
             A.HorizontalFlip(p=0.3),
             A.HueSaturationValue(p=0.3),
