@@ -21,7 +21,6 @@ from dataset import FaceDataset
 from defaults import _C as cfg
 from datetime import datetime
 from matplotlib import pyplot as plt
-import loss as L
 
 def get_args():
     model_names = sorted(name for name in pretrainedmodels.__dict__
@@ -30,23 +29,17 @@ def get_args():
                          and callable(pretrainedmodels.__dict__[name]))
     parser = argparse.ArgumentParser(description=f"available models: {model_names}",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--data_dir", type=str,
-                        required=True, help="Data root directory")
-    parser.add_argument("--dataset", type=str,
-                        required=True, help="Dataset name")
-    parser.add_argument("--resume", type=str, default=None,
-                        help="Resume from checkpoint if any")
-    parser.add_argument("--checkpoint", type=str,
-                        default="checkpoint", help="Checkpoint directory")
-    parser.add_argument("--tensorboard", type=str,
-                        default=None, help="Tensorboard log directory")
-    parser.add_argument('--multi_gpu', action="store_true",
-                        help="Use multi GPUs (data parallel)")
+    parser.add_argument("--data_dir", type=str, required=True, help="Data root directory")
+    parser.add_argument("--dataset", type=str, required=True, help="Dataset name")
+    parser.add_argument("--resume", type=str, default=None, help="Resume from checkpoint if any")
+    parser.add_argument("--checkpoint", type=str, default="checkpoint", help="Checkpoint directory")
+    parser.add_argument("--tensorboard", type=str, default=None, help="Tensorboard log directory")
+    parser.add_argument('--multi_gpu', action="store_true", help="Use multi GPUs (data parallel)")
     parser.add_argument('--expand', type=float, default=0, help="expand the crop area by a factor, typically between 0 and 1")
     parser.add_argument('--aug', action="store_true",
                         help="Apply data augmentation")
     parser.add_argument("opts", default=[], nargs=argparse.REMAINDER,
-                        help="Modify config options using the command-line, e.g. MODEL.ARCH vgg16_bn")
+                        help="Modify config options using the command-line")
     args = parser.parse_args()
     return args
 
@@ -69,28 +62,23 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
     model.train()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
-    rank = torch.Tensor([i for i in range(101)]).to(device)
 
     with tqdm(train_loader) as _tqdm:
-        for x, y, lbl in _tqdm:
+        for x, y in _tqdm:
             x = x.to(device)
             y = y.to(device)
-            lbl = lbl.to(device)
 
             # compute output
             outputs = model(x)
-            outputs = F.softmax(outputs, dim = 1)
-            ages = torch.sum(outputs*rank, dim=1)
 
             # calc loss
-            # loss = criterion(outputs, y)
-            loss1 = L.kl_loss(outputs, lbl)
-            loss2 = L.L1_loss(ages, y)
-            loss = loss1 + loss2
+            loss = criterion(outputs, y)
             cur_loss = loss.item()
 
             # calc accuracy
-            correct_num = (abs(ages - y) < 1).sum().item()
+            predicted = F.softmax(outputs, dim=-1)
+            _, predicted = predicted.max(1)
+            correct_num = predicted.eq(y).sum().item()
 
             # measure accuracy and record loss
             sample_num = x.size(0)
@@ -108,50 +96,46 @@ def train(train_loader, model, criterion, optimizer, epoch, device):
     return loss_monitor.avg, accuracy_monitor.avg
 
 
-def validate(validate_loader, model, criterion, epoch, device, val_count, get_ca=False):
+def validate(validate_loader, model, criterion, epoch, device, val_count, get_ca = False):
     model.eval()
     loss_monitor = AverageMeter()
     accuracy_monitor = AverageMeter()
-    preds = [] 
+    preds = []
     gt = []
-    rank = torch.Tensor([i for i in range(101)]).to(device)
     ca = None
     if get_ca:
         ca = {3:0, 5:0, 7:0}
     with torch.no_grad():
         with tqdm(validate_loader) as _tqdm:
-            for i, (x, y, lbl) in enumerate(_tqdm):
+            for i, (x, y) in enumerate(_tqdm):
                 x = x.to(device)
+
                 y = y.to(device)
-                lbl = lbl.to(device)
 
                 # compute output
                 outputs = model(x)
-                outputs = F.softmax(outputs, dim = 1)
-                ages = torch.sum(outputs*rank, dim=1)  # age expectation
-                preds.append(ages.cpu().numpy())  # append predicted age
-                gt.append(y.cpu().numpy())  # append real age
-
+                pred_ages = F.softmax(outputs, dim=-1)
+                _, pred_ages = pred_ages.max(1)
+                preds.append(pred_ages.cpu().numpy())
                 if ca is not None:
-                    for ind, age in enumerate(ages):
+                    for ind, age in enumerate(pred_ages):
                         if abs(y[ind].item() - age) < 3:
                             ca[3] += 1
                         if abs(y[ind].item() - age) < 5:
                             ca[5] += 1
                         if abs(y[ind].item() - age) < 7:
                             ca[7] += 1
-                        
-                        
+
+                gt.append(y.cpu().numpy())
+
                 # valid for validation, not used for test
                 if criterion is not None:
                     # calc loss
-                    loss1 = L.kl_loss(outputs, lbl)
-                    loss2 = L.L1_loss(ages, y)
-                    loss = loss1 + loss2
+                    loss = criterion(outputs, y)
                     cur_loss = loss.item()
 
                     # calc accuracy
-                    correct_num = (abs(ages - y) < 1).sum().item()
+                    correct_num = pred_ages.eq(y).sum().item()
 
                     # measure accuracy and record loss
                     sample_num = x.size(0)
@@ -162,16 +146,15 @@ def validate(validate_loader, model, criterion, epoch, device, val_count, get_ca
 
     preds = np.concatenate(preds, axis=0)
     gt = np.concatenate(gt, axis=0)
-    # ages = np.arange(0, 101)
-    # ave_preds = (preds * ages).sum(axis=-1)
-    mae = np.abs(preds - gt).mean()
+    diff = preds - gt
+    mae = np.abs(diff).mean()
     
     if ca is not None:
         for i in ca.keys():
             ca[i] = ca[i] / val_count
         print("\n")
         print("CA3: {:.2f} CA5: {:.2f} CA7: {:.2f}".format(ca[3] * 100, ca[5]*100, ca[7]*100))
-    
+
     return loss_monitor.avg, accuracy_monitor.avg, mae, ca
 
 
@@ -220,7 +203,7 @@ def main():
 
     if device == "cuda":
         cudnn.benchmark = True
-    
+
     get_ca = True if "megaage" in args.dataset.lower() else True # display cummulative acuracy 
     value_ca = True if "megaage" in args.dataset.lower() else False # use CA to update saved model
     if get_ca:
@@ -230,16 +213,14 @@ def main():
 
     criterion = nn.CrossEntropyLoss().to(device)
     train_dataset = FaceDataset(args.data_dir, "train", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=args.aug,
-                                age_stddev=cfg.TRAIN.AGE_STDDEV, label=True, expand= args.expand)
-    # train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                            #   num_workers=cfg.TRAIN.WORKERS, drop_last=False)
+                                age_stddev=cfg.TRAIN.AGE_STDDEV, expand= args.expand)
+    train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
+                              num_workers=cfg.TRAIN.WORKERS, drop_last=False)
 
-    val_dataset = FaceDataset(args.data_dir, "valid", args.dataset,
-                              img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, expand= args.expand)
+    val_dataset = FaceDataset(args.data_dir, "valid", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=False, expand= args.expand)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
                             num_workers=cfg.TRAIN.WORKERS, drop_last=False)
     val_count = len(val_dataset)
-
     scheduler = StepLR(optimizer, step_size=cfg.TRAIN.LR_DECAY_STEP, gamma=cfg.TRAIN.LR_DECAY_RATE,
                        last_epoch=start_epoch - 1)
     best_val_mae = 10000.0
@@ -248,10 +229,8 @@ def main():
 
     if args.tensorboard is not None:
         opts_prefix = "_".join(args.opts)
-        train_writer = SummaryWriter(
-            log_dir=args.tensorboard + "/" + opts_prefix + "_train")
-        val_writer = SummaryWriter(
-            log_dir=args.tensorboard + "/" + opts_prefix + "_val")
+        train_writer = SummaryWriter(log_dir=args.tensorboard + "/" + opts_prefix + "_train")
+        val_writer = SummaryWriter(log_dir=args.tensorboard + "/" + opts_prefix + "_val")
 
     all_train_loss = []
     all_train_accu = []
@@ -259,8 +238,7 @@ def main():
     all_val_accu = []
     length_split = [11026, 11026, 11026, 11027]
 
-    # range(start_epoch, cfg.TRAIN.EPOCHS):
-    for epoch in range(cfg.TRAIN.EPOCHS):
+    for epoch in range(cfg.TRAIN.EPOCHS): #range(start_epoch, cfg.TRAIN.EPOCHS):
         # train
 
         ds = random_split(train_dataset, length_split)
@@ -268,12 +246,10 @@ def main():
         for i in ds:
             train_loader = DataLoader(i, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
                         num_workers=cfg.TRAIN.WORKERS, drop_last=False)
-            train_loss, train_acc = train(
-                train_loader, model, criterion, optimizer, epoch, device)
+            train_loss, train_acc = train(train_loader, model, criterion, optimizer, epoch, device)
 
-            # validate
-            val_loss, val_acc, val_mae, new_ca= validate(
-                val_loader, model, criterion, epoch, device, val_count, get_ca)
+        # validate
+            val_loss, val_acc, val_mae, new_ca = validate(val_loader, model, criterion, epoch, device, val_count, get_ca)
 
             if args.tensorboard is not None:
                 train_writer.add_scalar("loss", train_loss, epoch)
@@ -287,12 +263,10 @@ def main():
             all_val_loss.append(float(val_loss))
             all_val_accu.append(float(val_mae))
 
-        # checkpoint
+            # checkpoint
             if ((not value_ca) and (val_mae < best_val_mae)) or ((get_ca and value_ca) and (new_ca[3] > global_ca[3])):
-                print(
-                    f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
-                model_state_dict = model.module.state_dict(
-                ) if args.multi_gpu else model.state_dict()
+                print(f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
+                model_state_dict = model.module.state_dict() if args.multi_gpu else model.state_dict()
                 torch.save(
                     {
                         'epoch': epoch + 1,
@@ -300,18 +274,16 @@ def main():
                         'state_dict': model_state_dict,
                         'optimizer_state_dict': optimizer.state_dict()
                     },
-                    str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(
-                        epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
+                    str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_pretraining_imdb.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
                 )
                 best_val_mae = val_mae
-                best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl_minibatch.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
+                best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_pretraining_imdb.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
                 if get_ca:
                     global_ca = new_ca
             else:
-                print(
-                    f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
+                print(f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
 
-        # adjust learning rate
+            # adjust learning rate
             scheduler.step()
 
     print("=> training finished")
