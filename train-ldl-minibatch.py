@@ -232,12 +232,12 @@ def main():
     train_dataset = FaceDataset(args.data_dir, "train", args.dataset, img_size=cfg.MODEL.IMG_SIZE, augment=args.aug,
                                 age_stddev=cfg.TRAIN.AGE_STDDEV, label=True, expand= args.expand)
     # train_loader = DataLoader(train_dataset, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                            #   num_workers=cfg.TRAIN.WORKERS, drop_last=False)
+                            #   num_workers=0, drop_last=False)
 
     val_dataset = FaceDataset(args.data_dir, "valid", args.dataset,
                               img_size=cfg.MODEL.IMG_SIZE, augment=False, label=True, expand= args.expand)
     val_loader = DataLoader(val_dataset, batch_size=cfg.TEST.BATCH_SIZE, shuffle=False,
-                            num_workers=cfg.TRAIN.WORKERS, drop_last=False)
+                            num_workers=0, drop_last=False)
     val_count = len(val_dataset)
 
     scheduler = StepLR(optimizer, step_size=cfg.TRAIN.LR_DECAY_STEP, gamma=cfg.TRAIN.LR_DECAY_RATE,
@@ -267,7 +267,7 @@ def main():
         
         for i in ds:
             train_loader = DataLoader(i, batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                        num_workers=cfg.TRAIN.WORKERS, drop_last=False)
+                        num_workers=0, drop_last=False)
             train_loss, train_acc = train(
                 train_loader, model, criterion, optimizer, epoch, device)
 

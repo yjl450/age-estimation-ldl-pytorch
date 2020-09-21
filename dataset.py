@@ -9,6 +9,7 @@ from torch.utils.data import Dataset
 from imgaug import augmenters as iaa
 import torchvision.transforms as transforms
 import math
+import cv2
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
@@ -56,8 +57,6 @@ class FaceDataset(Dataset):
         #     ),
         #     ToTensorV2()
         # ])
-
-        # Warning: Albumentaions may not be very stable and could possibly lead to nan
         self.transform_aug = A.Compose([
             A.HorizontalFlip(p=0.3),
             A.HueSaturationValue(p=0.3),
