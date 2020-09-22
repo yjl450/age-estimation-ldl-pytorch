@@ -236,7 +236,7 @@ def main():
     all_train_accu = []
     all_val_loss = []
     all_val_accu = []
-    length_split = [11026, 11026, 11026, 11027]
+    length_split = [11026, 11026, 11027, 11027]
 
     for epoch in range(cfg.TRAIN.EPOCHS): #range(start_epoch, cfg.TRAIN.EPOCHS):
         # train
