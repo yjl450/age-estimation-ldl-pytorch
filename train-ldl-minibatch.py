@@ -265,202 +265,54 @@ def main():
 
         ds = random_split(train_dataset, length_split)
         
-        # for i in ds:
-        train_loader = DataLoader(ds[0], batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                    num_workers=0, drop_last=False)
-        train_loss, train_acc = train(
-            train_loader, model, criterion, optimizer, epoch, device)
+        for i in ds:
+            train_loader = DataLoader(ds[0], batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
+                        num_workers=0, drop_last=False)
+            train_loss, train_acc = train(
+                train_loader, model, criterion, optimizer, epoch, device)
 
-        # validate
-        val_loss, val_acc, val_mae, new_ca= validate(
-            val_loader, model, criterion, epoch, device, val_count, get_ca)
+            # validate
+            val_loss, val_acc, val_mae, new_ca= validate(
+                val_loader, model, criterion, epoch, device, val_count, get_ca)
 
-        if args.tensorboard is not None:
-            train_writer.add_scalar("loss", train_loss, epoch)
-            train_writer.add_scalar("acc", train_acc, epoch)
-            val_writer.add_scalar("loss", val_loss, epoch)
-            val_writer.add_scalar("acc", val_acc, epoch)
-            val_writer.add_scalar("mae", val_mae, epoch)
+            if args.tensorboard is not None:
+                train_writer.add_scalar("loss", train_loss, epoch)
+                train_writer.add_scalar("acc", train_acc, epoch)
+                val_writer.add_scalar("loss", val_loss, epoch)
+                val_writer.add_scalar("acc", val_acc, epoch)
+                val_writer.add_scalar("mae", val_mae, epoch)
 
-        all_train_loss.append(float(train_loss))
-        all_train_accu.append(float(train_acc))
-        all_val_loss.append(float(val_loss))
-        all_val_accu.append(float(val_mae))
+            all_train_loss.append(float(train_loss))
+            all_train_accu.append(float(train_acc))
+            all_val_loss.append(float(val_loss))
+            all_val_accu.append(float(val_mae))
 
-    # checkpoint
-        if ((not value_ca) and (val_mae < best_val_mae)) or ((get_ca and value_ca) and (new_ca[3] > global_ca[3])):
-            print(
-                f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
-            model_state_dict = model.module.state_dict(
-            ) if args.multi_gpu else model.state_dict()
-            torch.save(
-                {
-                    'epoch': epoch + 1,
-                    'arch': cfg.MODEL.ARCH,
-                    'state_dict': model_state_dict,
-                    'optimizer_state_dict': optimizer.state_dict()
-                },
-                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(
-                    epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-            )
-            best_val_mae = val_mae
-            best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl_minibatch.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-            if get_ca:
-                global_ca = new_ca
-        else:
-            print(
-                f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
+        # checkpoint
+            if ((not value_ca) and (val_mae < best_val_mae)) or ((get_ca and value_ca) and (new_ca[3] > global_ca[3])):
+                print(
+                    f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
+                model_state_dict = model.module.state_dict(
+                ) if args.multi_gpu else model.state_dict()
+                torch.save(
+                    {
+                        'epoch': epoch + 1,
+                        'arch': cfg.MODEL.ARCH,
+                        'state_dict': model_state_dict,
+                        'optimizer_state_dict': optimizer.state_dict()
+                    },
+                    str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(
+                        epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
+                )
+                best_val_mae = val_mae
+                best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl_minibatch.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
+                if get_ca:
+                    global_ca = new_ca
+            else:
+                print(
+                    f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
 
-    # adjust learning rate
-        scheduler.step()
-
-
-    ##############################
-        train_loader = DataLoader(ds[1], batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                    num_workers=0, drop_last=False)
-        train_loss, train_acc = train(
-            train_loader, model, criterion, optimizer, epoch, device)
-
-        # validate
-        val_loss, val_acc, val_mae, new_ca= validate(
-            val_loader, model, criterion, epoch, device, val_count, get_ca)
-
-        if args.tensorboard is not None:
-            train_writer.add_scalar("loss", train_loss, epoch)
-            train_writer.add_scalar("acc", train_acc, epoch)
-            val_writer.add_scalar("loss", val_loss, epoch)
-            val_writer.add_scalar("acc", val_acc, epoch)
-            val_writer.add_scalar("mae", val_mae, epoch)
-
-        all_train_loss.append(float(train_loss))
-        all_train_accu.append(float(train_acc))
-        all_val_loss.append(float(val_loss))
-        all_val_accu.append(float(val_mae))
-
-    # checkpoint
-        if ((not value_ca) and (val_mae < best_val_mae)) or ((get_ca and value_ca) and (new_ca[3] > global_ca[3])):
-            print(
-                f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
-            model_state_dict = model.module.state_dict(
-            ) if args.multi_gpu else model.state_dict()
-            torch.save(
-                {
-                    'epoch': epoch + 1,
-                    'arch': cfg.MODEL.ARCH,
-                    'state_dict': model_state_dict,
-                    'optimizer_state_dict': optimizer.state_dict()
-                },
-                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(
-                    epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-            )
-            best_val_mae = val_mae
-            best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl_minibatch.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-            if get_ca:
-                global_ca = new_ca
-        else:
-            print(
-                f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
-
-    # adjust learning rate
-        scheduler.step()
-
-    ########################
-        train_loader = DataLoader(ds[2], batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                    num_workers=0, drop_last=False)
-        train_loss, train_acc = train(
-            train_loader, model, criterion, optimizer, epoch, device)
-
-        # validate
-        val_loss, val_acc, val_mae, new_ca= validate(
-            val_loader, model, criterion, epoch, device, val_count, get_ca)
-
-        if args.tensorboard is not None:
-            train_writer.add_scalar("loss", train_loss, epoch)
-            train_writer.add_scalar("acc", train_acc, epoch)
-            val_writer.add_scalar("loss", val_loss, epoch)
-            val_writer.add_scalar("acc", val_acc, epoch)
-            val_writer.add_scalar("mae", val_mae, epoch)
-
-        all_train_loss.append(float(train_loss))
-        all_train_accu.append(float(train_acc))
-        all_val_loss.append(float(val_loss))
-        all_val_accu.append(float(val_mae))
-
-    # checkpoint
-        if ((not value_ca) and (val_mae < best_val_mae)) or ((get_ca and value_ca) and (new_ca[3] > global_ca[3])):
-            print(
-                f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
-            model_state_dict = model.module.state_dict(
-            ) if args.multi_gpu else model.state_dict()
-            torch.save(
-                {
-                    'epoch': epoch + 1,
-                    'arch': cfg.MODEL.ARCH,
-                    'state_dict': model_state_dict,
-                    'optimizer_state_dict': optimizer.state_dict()
-                },
-                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(
-                    epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-            )
-            best_val_mae = val_mae
-            best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl_minibatch.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-            if get_ca:
-                global_ca = new_ca
-        else:
-            print(
-                f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
-
-    # adjust learning rate
-        scheduler.step()
-
-    #######################
-        train_loader = DataLoader(ds[3], batch_size=cfg.TRAIN.BATCH_SIZE, shuffle=True,
-                    num_workers=0, drop_last=False)
-        train_loss, train_acc = train(
-            train_loader, model, criterion, optimizer, epoch, device)
-
-        # validate
-        val_loss, val_acc, val_mae, new_ca= validate(
-            val_loader, model, criterion, epoch, device, val_count, get_ca)
-
-        if args.tensorboard is not None:
-            train_writer.add_scalar("loss", train_loss, epoch)
-            train_writer.add_scalar("acc", train_acc, epoch)
-            val_writer.add_scalar("loss", val_loss, epoch)
-            val_writer.add_scalar("acc", val_acc, epoch)
-            val_writer.add_scalar("mae", val_mae, epoch)
-
-        all_train_loss.append(float(train_loss))
-        all_train_accu.append(float(train_acc))
-        all_val_loss.append(float(val_loss))
-        all_val_accu.append(float(val_mae))
-
-    # checkpoint
-        if ((not value_ca) and (val_mae < best_val_mae)) or ((get_ca and value_ca) and (new_ca[3] > global_ca[3])):
-            print(
-                f"=> [epoch {epoch:03d}] best val mae was improved from {best_val_mae:.3f} to {val_mae:.3f}")
-            model_state_dict = model.module.state_dict(
-            ) if args.multi_gpu else model.state_dict()
-            torch.save(
-                {
-                    'epoch': epoch + 1,
-                    'arch': cfg.MODEL.ARCH,
-                    'state_dict': model_state_dict,
-                    'optimizer_state_dict': optimizer.state_dict()
-                },
-                str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl.pth".format(
-                    epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-            )
-            best_val_mae = val_mae
-            best_checkpoint = str(checkpoint_dir.joinpath("epoch{:03d}_{}_{:.5f}_{:.4f}_{}_{}_ldl_minibatch.pth".format(epoch, args.dataset, val_loss, val_mae, datetime.now().strftime("%Y%m%d"), cfg.MODEL.ARCH)))
-            if get_ca:
-                global_ca = new_ca
-        else:
-            print(
-                f"=> [epoch {epoch:03d}] best val mae was not improved from {best_val_mae:.3f} ({val_mae:.3f})")
-
-    # adjust learning rate
-        scheduler.step()
+        # adjust learning rate
+            scheduler.step()
 
     print("=> training finished")
     print(f"additional opts: {args.opts}")
