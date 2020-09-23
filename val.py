@@ -259,7 +259,7 @@ def validate_ldl(validate_loader, model, criterion, epoch, device, group_count, 
                     group_mae[get_group(y[ind].item())] += abs(y[ind] - age)
                     if gender_count != "False":
                         gender_mae[gender[ind]] += abs(y[ind] - age) 
-                    if abs(y[ind] - age) > 3:
+                    if abs(y[ind] - age) > 5 or abs(y[ind] - age) < 0.5:
                         error.append([path[ind], y[ind].item(), age.item(), abs(y[ind] - age).item()])
                     if ca is not None:
                         if abs(y[ind].item() - age) < 3:
