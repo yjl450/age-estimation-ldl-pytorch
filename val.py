@@ -1,5 +1,4 @@
 import argparse
-import better_exceptions
 from pathlib import Path
 from collections import OrderedDict
 from tqdm import tqdm
@@ -13,13 +12,11 @@ from torch.optim.lr_scheduler import StepLR
 import torch.utils.data
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from torch.utils.tensorboard import SummaryWriter
 import pretrainedmodels
 import pretrainedmodels.utils
 from model import get_model
 from dataset import FaceDataset, expand_bbox, normal_sampling
 from defaults import _C as cfg
-from datetime import datetime
 from matplotlib import pyplot as plt
 import loss as L
 import pandas as pd
@@ -92,10 +89,6 @@ def get_args():
                         required=True, help="Dataset name")
     parser.add_argument("--resume", type=str, required=True, default=None,
                         help="Resume from checkpoint if any")
-    parser.add_argument("--checkpoint", type=str,
-                        default="checkpoint", help="Checkpoint directory")
-    parser.add_argument("--tensorboard", type=str,
-                        default=None, help="Tensorboard log directory")
     parser.add_argument('--multi_gpu', action="store_true",
                         help="Use multi GPUs (data parallel)")
     parser.add_argument('--ldl', action="store_true",

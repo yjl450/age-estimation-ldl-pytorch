@@ -1,5 +1,4 @@
 import argparse
-import better_exceptions
 from pathlib import Path
 from collections import OrderedDict
 from tqdm import tqdm
@@ -13,7 +12,6 @@ from torch.optim.lr_scheduler import StepLR
 import torch.utils.data
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
-from torch.utils.tensorboard import SummaryWriter
 import pretrainedmodels
 import pretrainedmodels.utils
 from model import get_model
@@ -38,8 +36,6 @@ def get_args():
                         help="Resume from checkpoint if any")
     parser.add_argument("--checkpoint", type=str,
                         default="checkpoint", help="Checkpoint directory")
-    parser.add_argument("--tensorboard", type=str,
-                        default=None, help="Tensorboard log directory")
     parser.add_argument('--multi_gpu', action="store_true",
                         help="Use multi GPUs (data parallel)")
     parser.add_argument('--expand', type=float, default=0, help="expand the crop area by a factor, typically between 0 and 1")
@@ -246,13 +242,6 @@ def main():
     train_writer = None
     global_ca = {3: 0.0, 5: 0.0, 7: 0.0}
 
-    if args.tensorboard is not None:
-        opts_prefix = "_".join(args.opts)
-        train_writer = SummaryWriter(
-            log_dir=args.tensorboard + "/" + opts_prefix + "_train")
-        val_writer = SummaryWriter(
-            log_dir=args.tensorboard + "/" + opts_prefix + "_val")
-
     all_train_loss = []
     all_train_accu = []
     all_val_loss = []
@@ -267,13 +256,6 @@ def main():
         # validate
         val_loss, val_acc, val_mae, new_ca= validate(
             val_loader, model, criterion, epoch, device, val_count, get_ca)
-
-        if args.tensorboard is not None:
-            train_writer.add_scalar("loss", train_loss, epoch)
-            train_writer.add_scalar("acc", train_acc, epoch)
-            val_writer.add_scalar("loss", val_loss, epoch)
-            val_writer.add_scalar("acc", val_acc, epoch)
-            val_writer.add_scalar("mae", val_mae, epoch)
 
         all_train_loss.append(float(train_loss))
         all_train_accu.append(float(train_acc))

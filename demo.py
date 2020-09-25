@@ -1,12 +1,9 @@
 import argparse
-import better_exceptions
 from pathlib import Path
 from contextlib import contextmanager
 import urllib.request
-import facenet_pytorch
 import numpy as np
 import cv2
-# import dlib
 import torch
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
