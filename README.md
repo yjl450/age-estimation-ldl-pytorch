@@ -12,20 +12,16 @@ pip install -r requirements.txt
 ## Datasets
 ### Introduction
 
-* Morph<sup>[CITE]</sup>
+* Morph<sup>[4]</sup>
 
 This dataset is widely used as a benchmark for age estimation algorithms. MAE (mean absolute error) is used as evaluation metric, which is also the default metric for validation of all datasets.
 
 More infomation and the academic version of this dataset can be purchased [here](https://ebill.uncw.edu/C20231_ustores/web/store_main.jsp?STOREID=4).
-* MegaAge and MegaAge-Asian <sup>[CITE]</sup>
+* MegaAge and MegaAge-Asian <sup>[5]</sup>
 
 Two large scale datasets featuring unconstrained images from the internet. CA (cummulative accuracy) is used as evaluation metric for this dataset. When training on these two datasets, any improvements in CA, as well as MAE, will result in a new saved model (.pth).
 
 More information and the datasets can be acquired [here](http://mmlab.ie.cuhk.edu.hk/projects/MegaAge/).
-
-* IMDB-WIKI <sup>[CITE]</sup>
-
-A huge dataset that is commonly used in pretraining due to its relatively low quality of the images included. Its MAE is not usually used as a evaluation metric of the model. More information [here](https://data.vision.ee.ethz.ch/cvl/rrothe/imdb-wiki/).
 
 ## Data Preparation & Image Preprocessing
 There should be two csv files generated for each dataset, one for training and one for validation, all of which follow the naming convention:
