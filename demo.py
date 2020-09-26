@@ -16,8 +16,8 @@ from time import perf_counter
 from facenet_pytorch import MTCNN
 from PIL import Image
 from dataset import expand_bbox
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+import torchvision
+import math
 
 def get_args():
     parser = argparse.ArgumentParser(description="Age estimation demo",
@@ -138,44 +138,43 @@ def main():
     image_generator = yield_images_from_dir(img_dir) if img_dir else yield_images()
     rank = torch.Tensor([i for i in range(101)]).to(device)
 
-    transform = A.Compose([
-        A.Resize(img_size, img_size),
-        A.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
-        ToTensorV2()
-    ])
 
     with torch.no_grad():
-        for img, name in image_generator:
+        for img, name in image_generator: # start processing image
             start = perf_counter()
             input_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(input_img)
-            detected, probs = mtcnn.detect(image)
-            img_h, img_w = image.size
+            image.show()
+            detected, _, landmarks = mtcnn.detect(image, landmarks=True)
+            if img_dir and landmarks is not None:
+                deg = angel(landmarks[0][0], landmarks[0][1])
+                image = image.rotate(deg, resample=Image.BICUBIC, expand=True)
+                aligned, _ = mtcnn.detect(image, landmarks=False)
+            else:
+                aligned = detected
 
-            # # detect faces using dlib detector
-            # detected = detector(input_img, 1)
-            # print(detected)
-
-            if detected is not None and len(detected) > 0:
+            if aligned is not None and len(detected) > 0:
                 detected = detected.astype(int)
                 if args.expand > 0:
                     box = expand_bbox(image.size, detected[0], ratio= args.expand)
                 else:
                     box = detected[0]
-                image = image.crop(box)
                 cv2.rectangle(img, (detected[0][0], detected[0][1]), (detected[0][2], detected[0][3]), (255, 255, 255), 2)
                 cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (255, 0, 0), 2)
 
-                image_np = np.array(image)
-                augmented = transform(image = image_np)
-                image = augmented["image"]
+                if img_dir:
+                    aligned = aligned.astype(int)
+                    if args.expand > 0:
+                        box = expand_bbox(image.size, aligned[0], ratio= args.expand)
+                    else:
+                        box = aligned[0]
+                image = image.crop(box)
+                image.show()
+                image.resize((img_size,img_size))
+                image = torchvision.transforms.ToTensor()(image)
                 image = image.unsqueeze(0).to(device)
-                # print(image.shape)
 
-            #     # predict ages
+                # predict ages
                 outputs = model(image)
                 outputs = F.softmax(outputs, dim=1)
                 if args.ldl:
