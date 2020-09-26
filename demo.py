@@ -22,8 +22,7 @@ import math
 def get_args():
     parser = argparse.ArgumentParser(description="Age estimation demo",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--resume", type=str, required = True,
-                        help="Model weight to be tested")
+    parser.add_argument("--resume", type=str, help="Model weight to be tested")
     parser.add_argument("--img_dir", type=str, default=None,
                         help="Target image directory; if set, images in image_dir are used instead of webcam")
     parser.add_argument("--output_dir", type=str, default=None,
@@ -111,7 +110,7 @@ def main():
     resume_path = args.resume
 
     if resume_path is None:
-        resume_path = Path(__file__).resolve().parent.joinpath("misc", "epoch044_0.02343_3.9984.pth")
+        resume_path = Path(__file__).resolve().parent.joinpath("misc", "megaage_fusion.pth")
 
         if not resume_path.is_file():
             print(f"=> model path is not set; start downloading trained model to {resume_path}")
@@ -144,7 +143,7 @@ def main():
             start = perf_counter()
             input_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(input_img)
-            image.show()
+            # image.show()
             detected, _, landmarks = mtcnn.detect(image, landmarks=True)
             if img_dir and landmarks is not None:
                 deg = angel(landmarks[0][0], landmarks[0][1])
@@ -169,7 +168,7 @@ def main():
                     else:
                         box = aligned[0]
                 image = image.crop(box)
-                image.show()
+                # image.show()
                 image.resize((img_size,img_size))
                 image = torchvision.transforms.ToTensor()(image)
                 image = image.unsqueeze(0).to(device)
