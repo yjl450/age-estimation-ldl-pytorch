@@ -1,8 +1,6 @@
 # Age Estimation PyTorch with Label Distribution Learning
 PyTorch-based CNN implementation for estimating age from face images.
 
-<img src="misc/example.png" width="800px">
-
 ## Requirements
 
 ```bash
