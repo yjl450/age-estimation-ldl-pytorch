@@ -1,6 +1,8 @@
 # Age Estimation PyTorch with Label Distribution Learning
 PyTorch-based CNN implementation for estimating age from face images.
 
+2021-04-28 Update: Dependency `Pillow==7.2.0` is changed to the latest `Pillow` for security update. The compatibility of the updated package has not been tested.
+
 ## Requirements
 
 ```bash
@@ -133,21 +135,3 @@ To be updated
 [5] Yunxuan Zhang, Li Liu, Cheng Li, and Chen Change Loy. Quantifying Facial Age by Posterior of Age Comparisons, In British Machine Vision Conference (BMVC), 2017.
 
 [6] Rasmus Rothe, Radu Timofte, and Luc Van Gool. 2018. Deep expectation of real and apparent age from a single image without facial landmarks. <i>International Journal of Computer Vision</i>, Vol. 126, No. 2-4, 144–157.
-
-
-
-
-<!--
-### Test Trained Model
-Evaluate the trained model using the APPA-REAL test dataset.
-
-```bash
-python test.py --data_dir [PATH/TO/appa-real-release] --resume [PATH/TO/BEST_MODEL.pth]
-```
-
-After evaluation, you can see something like this:
-
-```bash
-100%|███████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 16/16 [00:08<00:00,  1.28it/s]
-test mae: 4.800
-```
