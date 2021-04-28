@@ -137,58 +137,63 @@ def main():
     image_generator = yield_images_from_dir(img_dir) if img_dir else yield_images()
     rank = torch.Tensor([i for i in range(101)]).to(device)
 
-
+    count=0
+    predicted_ages=[0]
+    detected=[[0,0]]
     with torch.no_grad():
         for img, name in image_generator: # start processing image
             start = perf_counter()
             input_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(input_img)
+            count+=1
             # image.show()
-            detected, _, landmarks = mtcnn.detect(image, landmarks=True)
-            if img_dir and landmarks is not None:
-                deg = angel(landmarks[0][0], landmarks[0][1])
-                image = image.rotate(deg, resample=Image.BICUBIC, expand=True)
-                aligned, _ = mtcnn.detect(image, landmarks=False)
-            else:
-                aligned = detected
-
-            if aligned is not None and len(detected) > 0:
-                detected = detected.astype(int)
-                if args.expand > 0:
-                    box = expand_bbox(image.size, detected[0], ratio= args.expand)
+            if count%5==0:
+                detected, _, landmarks = mtcnn.detect(image, landmarks=True)
+                if img_dir and landmarks is not None:
+                    deg = angel(landmarks[0][0], landmarks[0][1])
+                    image = image.rotate(deg, resample=Image.BICUBIC, expand=True)
+                    aligned, _ = mtcnn.detect(image, landmarks=False)
                 else:
-                    box = detected[0]
-                cv2.rectangle(img, (detected[0][0], detected[0][1]), (detected[0][2], detected[0][3]), (255, 255, 255), 2)
-                cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (255, 0, 0), 2)
+                    aligned = detected
 
-                if img_dir:
-                    aligned = aligned.astype(int)
+                if aligned is not None and len(detected) > 0:
+                    detected = detected.astype(int)
                     if args.expand > 0:
-                        box = expand_bbox(image.size, aligned[0], ratio= args.expand)
+                        box = expand_bbox(image.size, detected[0], ratio= args.expand)
                     else:
-                        box = aligned[0]
-                image = image.crop(box)
-                # image.show()
-                image.resize((img_size,img_size))
-                image = torchvision.transforms.ToTensor()(image)
-                image = image.unsqueeze(0).to(device)
+                        box = detected[0]
+                    cv2.rectangle(img, (detected[0][0], detected[0][1]), (detected[0][2], detected[0][3]), (255, 255, 255), 2)
+                    cv2.rectangle(img, (box[0], box[1]), (box[2], box[3]), (255, 0, 0), 2)
+
+                    if img_dir:
+                        aligned = aligned.astype(int)
+                        if args.expand > 0:
+                            box = expand_bbox(image.size, aligned[0], ratio= args.expand)
+                        else:
+                            box = aligned[0]
+                    image = image.crop(box)
+                    # image.show()
+                    image.resize((img_size,img_size))
+                    image = torchvision.transforms.ToTensor()(image)
+                    image = image.unsqueeze(0).to(device)
 
                 # predict ages
-                outputs = model(image)
-                outputs = F.softmax(outputs, dim=1)
-                if args.ldl:
-                    predicted_ages = torch.sum(outputs * rank, dim = 1)
-                else:
-                    _, predicted_ages = outputs.max(1)
+                    outputs = model(image)
+                    outputs = F.softmax(outputs, dim=1)
+                    if args.ldl:
+                        predicted_ages = torch.sum(outputs * rank, dim = 1)
+                    else:
+                        _, predicted_ages = outputs.max(1)
 
-                # draw results
-                # for i, d in enumerate(detected):
-                label = "{}".format(int(predicted_ages[0]))
-                draw_label(img, (detected[0][0], detected[0][1]), label)
+            # draw results
+            # for i, d in enumerate(detected):
+            label = "{}".format(int(predicted_ages[0]))
+            draw_label(img, (detected[0][0], detected[0][1]), label)
 
                 # faces = np.array(faces.permute(1, 2, 0)).astype(np.uint8)
                 # faces = cv2.cvtColor(faces, cv2.COLOR_RGB2BGR)
-
+            if count == 10000:
+                count = 0
             if args.output_dir is not None:
                 output_path = output_dir.joinpath(name)
                 cv2.imwrite(str(output_path), img)
