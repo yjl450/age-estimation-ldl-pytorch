@@ -195,7 +195,7 @@ def main():
             else:
                 elapsed = perf_counter() - start
                 cv2.putText(img, "FPS: "+ "{:.1f} Press ESC to exit".format(60/elapsed),(10,20),cv2.FONT_HERSHEY_DUPLEX,0.5,(255, 255,255),1)
-                cv2.imshow("result", img)
+                cv2.imshow("Age Estimation - Live Demo", img)
                 key = cv2.waitKey(-1) if img_dir else cv2.waitKey(30)
 
                 if key == 27:  # ESC
