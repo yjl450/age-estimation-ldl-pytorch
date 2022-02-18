@@ -121,7 +121,7 @@ python val.py --data_dir [PATH/TO/morph] --dataset morph
 * `--expand` - same as [train.py](train.py), the number should be the same as the factor used in training the model
 
 ## Result
-The results are compared in https://github.com/yjl450/DURF-2020/blob/master/Poster.pdf
+The results are compared in [the research poster](https://github.com/yjl450/DURF-2020/blob/master/Poster.pdf)
 
 ## References
 [1] This project is heavily based on https://github.com/yu4u/age-estimation-pytorch
